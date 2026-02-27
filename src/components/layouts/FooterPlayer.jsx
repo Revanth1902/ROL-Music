@@ -18,8 +18,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
-import SeekBar from "../ui/Seekbar";
+import SeekBar from "../ui/SeekBar"
 import { useAudioPlayer } from "../../contexts/AudioPlayerContext";
 import { useQueue } from "../../contexts/QueueContext";
 
