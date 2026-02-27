@@ -1,0 +1,120 @@
+/* =============================================
+   SIDEBAR
+   ============================================= */
+
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: linear-gradient(180deg, #0a0e1a 0%, #0f1220 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+/* Logo */
+.sidebar .logo {
+  padding: 24px 16px 20px;
+  font-weight: 800;
+  font-size: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: white;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 8px;
+}
+
+.sidebar .logo img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+/* Nav List */
+.sidebar ul {
+  list-style: none;
+  padding: 4px 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar li {
+  width: 100%;
+}
+
+.sidebar li a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+}
+
+.sidebar li a:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sidebar li a.active {
+  background: linear-gradient(135deg, rgba(108, 99, 255, 0.18), rgba(29, 185, 84, 0.1));
+  color: #ffffff;
+  font-weight: 600;
+  border: 1px solid rgba(108, 99, 255, 0.2);
+}
+
+.sidebar li a svg {
+  font-size: 20px !important;
+  color: inherit;
+  transition: color 0.2s;
+}
+
+.sidebar li a.active svg {
+  color: #a78bfa;
+}
+
+.thedot {
+  display: none;
+}
+
+/* Mobile: sidebar is a drawer */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1300;
+    width: 240px;
+    min-width: 240px;
+    transform: translateX(-100%);
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar .logo {
+    font-size: 16px;
+  }
+
+  .sidebar li a {
+    font-size: 0.9rem;
+    padding: 11px 14px;
+  }
+}

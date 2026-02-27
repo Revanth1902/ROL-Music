@@ -1,0 +1,347 @@
+/* =========================================
+   GLOBAL RESET & FONT — ROL Music
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Plus Jakarta Sans", "Outfit", sans-serif;
+}
+
+/* Override MUI icon button */
+.MuiIconButton-root .MuiSvgIcon-root {
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+  border-radius: 50%;
+  padding: 0;
+  transition: color 0.2s ease;
+  font-size: 22px !important;
+}
+
+button,
+.MuiIconButton-root {
+  background: transparent !important;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover,
+.MuiIconButton-root:hover {
+  opacity: 0.85;
+  transform: scale(1.08);
+}
+
+button:active,
+.MuiIconButton-root:active {
+  transform: scale(0.94);
+}
+
+body {
+  font-family: "Plus Jakarta Sans", "Outfit", sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  background: linear-gradient(140deg, #080c1a 0%, #0c1220 50%, #0a0f1e 100%);
+  color: #e7e7e7;
+}
+
+/* =========================================
+   GLOBAL ICON THEMING — React Icons + MUI
+   =========================================
+
+   Design tokens:
+     --icon-primary    : #a78bfa  (violet — main accent)
+     --icon-muted      : rgba(255,255,255,0.45)
+     --icon-white      : rgba(255,255,255,0.82)
+     --icon-green      : #1db954  (Spotify green — active/loop)
+     --icon-fire       : #fb923c  (orange — trending)
+     --icon-trend      : #34d399  (emerald — growth)
+     --icon-chart      : #f59e0b  (amber — charts)
+     --icon-love       : #e05c7a  (rose — heart)
+     --icon-gold       : #fbbf24  (gold — star/rank)
+*/
+
+/* ── Base: all SVG/React icons inherit smooth transition ── */
+svg {
+  transition: color 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+
+/* ── MUI icon buttons: consistent white with hover brightness ── */
+.MuiIconButton-root svg,
+.MuiIconButton-root .MuiSvgIcon-root {
+  color: rgba(255, 255, 255, 0.65);
+  transition: color 0.18s ease;
+}
+
+.MuiIconButton-root:hover svg {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* ── Desktop footer player controls ── */
+.fp-ctrl-btn svg {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fp-ctrl-btn:hover svg {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.fp-ctrl-active svg {
+  color: #1db954 !important;
+}
+
+.fp-play-btn svg {
+  color: #0a0c18;
+}
+
+/* ── Fullscreen player controls ── */
+.fs-ctrl-btn svg {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fs-ctrl-btn:hover svg {
+  color: #fff;
+}
+
+.fs-ctrl-btn.active svg {
+  color: #1db954;
+}
+
+.fs-play-btn svg {
+  color: #0a0c18;
+}
+
+/* ── ThreeDotMenu trigger ── */
+.tdm-trigger svg {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.tdm-trigger:hover svg {
+  color: #fff;
+}
+
+/* ── Menu item icons (ThreeDotMenu & queue menu) ── */
+.tdm-icon {
+  color: rgba(255, 255, 255, 0.45);
+  transition: color 0.15s;
+}
+
+.MuiMenuItem-root:hover .tdm-icon {
+  color: #a78bfa;
+}
+
+/* ── Section themed icons ── */
+.icon-fire {
+  color: #fb923c;
+  filter: drop-shadow(0 0 5px rgba(251, 146, 60, 0.45));
+}
+
+.icon-trend {
+  color: #34d399;
+  filter: drop-shadow(0 0 5px rgba(52, 211, 153, 0.35));
+}
+
+.icon-album {
+  color: #818cf8;
+  filter: drop-shadow(0 0 5px rgba(129, 140, 248, 0.35));
+}
+
+.icon-chart {
+  color: #f59e0b;
+  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.35));
+}
+
+.icon-playlist {
+  color: #a78bfa;
+  filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.35));
+}
+
+/* ── Hero / home icons ── */
+.eyebrow-icon {
+  color: #a78bfa;
+}
+
+.pill-icon {
+  color: #a78bfa;
+}
+
+.credit-heart {
+  color: #e05c7a;
+}
+
+/* ── SongListItem play icons ── */
+.sli-play-icon {
+  color: #a78bfa !important;
+  font-size: 1rem !important;
+}
+
+.sli-active .sli-play-icon,
+.sli-active svg {
+  color: #6c63ff !important;
+}
+
+/* ── Sidebar nav icons (if using React Icons there) ── */
+.nav-icon {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 1.15rem;
+  transition: color 0.18s ease;
+}
+
+.nav-item.active .nav-icon,
+.nav-item:hover .nav-icon {
+  color: #c4b5fd;
+}
+
+/* ── Artist page icons ── */
+.apc-avatar-play {
+  color: white;
+}
+
+/* ── Detail pages: back button, play btn ── */
+.detail-back-btn svg {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.detail-play-all-btn svg {
+  color: white;
+}
+
+/* ── Follow / like indicator ── */
+.fs-heart-btn.liked svg {
+  color: #e05c7a;
+  filter: drop-shadow(0 0 6px rgba(224, 92, 122, 0.5));
+}
+
+.fs-heart-btn:not(.liked) svg {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Download toast icons ── */
+.MuiLinearProgress-root~* svg {
+  vertical-align: middle;
+}
+
+/* =========================================
+   APP LAYOUT
+   ========================================= */
+.app-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Main scrollable content area */
+.main-content {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding-bottom: 100px;
+  background: transparent;
+}
+
+/* Desktop topbar */
+.desktop-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  background: rgba(8, 12, 26, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Scrollbar */
+.main-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: rgba(108, 99, 255, 0.25);
+  border-radius: 3px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(108, 99, 255, 0.4);
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+@media (max-width: 768px) {
+  .main-content {
+    padding-bottom: 80px;
+  }
+}
+
+/* =========================================
+   ANIMATIONS
+   ========================================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Marquee animation for player */
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  10% {
+    transform: translateX(0);
+  }
+
+  90% {
+    transform: translateX(var(--scroll-distance, -100px));
+  }
+
+  100% {
+    transform: translateX(var(--scroll-distance, -100px));
+  }
+}

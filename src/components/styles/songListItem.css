@@ -1,0 +1,100 @@
+/* ── Song List Item ── */
+.sli {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.18s ease, transform 0.15s ease;
+    position: relative;
+}
+
+.sli:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.sli-active {
+    background: rgba(108, 99, 255, 0.12) !important;
+}
+
+.sli-active .sli-title {
+    color: #a78bfa !important;
+}
+
+/* Index column */
+.sli-index {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sli-num {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.35);
+    transition: opacity 0.15s;
+}
+
+.sli-play-icon {
+    font-size: 1.2rem !important;
+    color: #fff;
+    position: absolute;
+}
+
+.sli-play-hover {
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.sli:hover .sli-num {
+    opacity: 0;
+}
+
+.sli:hover .sli-play-hover {
+    opacity: 1;
+}
+
+/* Thumbnail */
+.sli-thumb {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Info */
+.sli-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.sli-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sli-artist {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Duration */
+.sli-dur {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.35);
+    white-space: nowrap;
+    flex-shrink: 0;
+}

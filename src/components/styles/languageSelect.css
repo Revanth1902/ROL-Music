@@ -1,0 +1,310 @@
+/* =============================================
+   LANGUAGE SELECT PAGE
+   ============================================= */
+
+.lang-select-page {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(140deg, #0c0c1e 0%, #1a0b2e 40%, #0f1a2e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  z-index: 9999;
+  padding: 20px 0;
+}
+
+/* Background orbs */
+.lang-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.2;
+  animation: orbFloat 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lang-orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #6c63ff, transparent);
+  top: -100px;
+  left: -150px;
+  animation-delay: 0s;
+}
+
+.lang-orb-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #1db954, transparent);
+  bottom: -100px;
+  right: -100px;
+  animation-delay: 2s;
+}
+
+.lang-orb-3 {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, #e91e8c, transparent);
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 4s;
+}
+
+@keyframes orbFloat {
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-24px) scale(1.04);
+  }
+}
+
+/* Content */
+.lang-select-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 860px;
+  padding: 32px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Header */
+.lang-select-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.lang-logo-wrap {
+  width: 78px;
+  height: 78px;
+  background: linear-gradient(135deg, #6c63ff22, #1db95422);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  margin-bottom: 6px;
+  animation: logoIn 0.8s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+
+@keyframes logoIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.lang-logo-img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.lang-select-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  background: linear-gradient(130deg, #a78bfa, #1db954, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  line-height: 1;
+  animation: fadeSlideUp 0.6s ease 0.1s both;
+}
+
+.lang-select-sub {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  animation: fadeSlideUp 0.6s ease 0.2s both;
+}
+
+.lang-select-hint {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.38);
+  margin: 0;
+  animation: fadeSlideUp 0.6s ease 0.3s both;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Language Grid */
+.lang-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 10px;
+  width: 100%;
+  animation: fadeSlideUp 0.6s ease 0.35s both;
+}
+
+/* Language Card */
+.lang-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 18px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+
+.lang-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #6c63ff, #1db954);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  border-radius: 14px;
+}
+
+.lang-card:hover {
+  border-color: rgba(108, 99, 255, 0.4);
+  transform: translateY(-3px) scale(1.03);
+}
+
+/* Active / selected state */
+.lang-card-active {
+  border-color: #6c63ff !important;
+  box-shadow: 0 0 16px rgba(108, 99, 255, 0.35), inset 0 0 20px rgba(108, 99, 255, 0.12);
+  transform: translateY(-3px) scale(1.03);
+}
+
+.lang-card-active::before {
+  opacity: 0.18;
+}
+
+/* Checkmark badge */
+.lang-card-check {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.7rem;
+  color: #1db954;
+  font-weight: 900;
+  z-index: 1;
+}
+
+.lang-native {
+  position: relative;
+  z-index: 1;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.lang-label {
+  position: relative;
+  z-index: 1;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+
+/* Selection count */
+.lang-selected-count {
+  font-size: 0.82rem;
+  color: #a78bfa;
+  background: rgba(108, 99, 255, 0.12);
+  border: 1px solid rgba(108, 99, 255, 0.25);
+  padding: 5px 16px;
+  border-radius: 20px;
+  animation: fadeSlideUp 0.5s ease 0.4s both;
+}
+
+/* Confirm button */
+.lang-confirm-btn {
+  padding: 14px 48px;
+  background: linear-gradient(135deg, #6c63ff, #4c3fff);
+  color: white !important;
+  border: none;
+  border-radius: 40px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 24px rgba(108, 99, 255, 0.35);
+  animation: fadeSlideUp 0.5s ease 0.45s both;
+}
+
+.lang-confirm-btn:hover {
+  transform: translateY(-2px) scale(1.04) !important;
+  box-shadow: 0 12px 32px rgba(108, 99, 255, 0.45);
+  background: linear-gradient(135deg, #7c72ff, #5c4fff);
+}
+
+.lang-confirm-btn:active {
+  transform: scale(0.97) !important;
+}
+
+.lang-footer-note {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.25);
+  text-align: center;
+  animation: fadeSlideUp 0.5s ease 0.5s both;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .lang-select-title {
+    font-size: 2rem;
+  }
+
+  .lang-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .lang-card {
+    padding: 14px 8px;
+  }
+
+  .lang-native {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .lang-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

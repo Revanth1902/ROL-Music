@@ -1,0 +1,76 @@
+/* Light theme */
+.light {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Dark theme */
+.dark {
+  background-color: #121212;
+  color: #ffffff;
+}
+
+/* Optional: smooth transition */
+body {
+  transition: background-color 0.3s, color 0.3s;
+  font-family: "Science Gothic", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+  font-variation-settings:
+    "slnt" 0,
+    "wdth" 100,
+    "CTRS" 0;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  list-style: none;
+}
+
+.nav-links li button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.toggle-button {
+  display: none;
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .toggle-button {
+    display: block;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .nav-links.active {
+    display: flex;
+  }
+}

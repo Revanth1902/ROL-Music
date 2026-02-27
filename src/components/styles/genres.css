@@ -1,0 +1,24 @@
+/* genres.css - genre chips and lists */
+
+.genre-chips {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.genre-chip {
+  padding:8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.02);
+  color: var(--muted);
+  font-size: 12px;
+}
+.genre-chip.active {
+  background: linear-gradient(180deg, rgba(30,215,96,0.12), rgba(18,140,72,0.08));
+  color: var(--accent);
+  box-shadow: 0 8px 20px rgba(30,215,96,0.06);
+}
+
+/* top artist row - small circle avatars */
+.top-artists { display:flex; gap:12px; overflow:auto; padding:8px 0; }
+.top-artists .artist { display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--muted); width:72px; }
+.top-artists img { width:64px; height:64px; border-radius:50%; object-fit:cover; border: 2px solid rgba(255,255,255,0.02); }

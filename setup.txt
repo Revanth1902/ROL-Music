@@ -1,0 +1,378 @@
+Here is your **complete, production-ready README.md** updated with API documentation and environment configuration.
+
+You can copy this directly into your project.
+
+---
+
+# 🎵 ROL Music – Frontend
+
+ROL Music is an open-source, multilingual music streaming web application built for seamless music discovery and playback.
+
+🚀 No login required
+🌍 13 Indian languages + English
+🎧 Persistent background audio
+🔌 Powered by public music APIs
+
+---
+
+# 🌍 Features
+
+## 🔤 Language Selection
+
+On first visit, users select a language:
+
+* Hindi
+* English
+* Tamil
+* Telugu
+* Kannada
+* Malayalam
+* Marathi
+* Punjabi
+* Gujarati
+* Bengali
+* Odia
+* Assamese
+* Bhojpuri
+* Urdu
+
+### How It Works
+
+1. Selected language is stored in:
+
+   * `localStorage` or
+   * Cookies
+2. Language is attached to every API request
+3. Content is fetched based on selected language
+4. App loads language-specific:
+
+   * Songs
+   * Albums
+   * Artists
+   * Playlists
+   * Charts
+
+---
+
+# 🏠 Pages & Navigation
+
+## 📱 Mobile (Bottom Navigation)
+
+* Home
+* Songs
+* Albums
+* Artists
+* Playlists
+* Charts
+* Settings
+
+## 💻 Desktop (Sidebar)
+
+* Home
+* Songs
+* Albums
+* Artists
+* Playlists
+* Charts
+* Settings
+
+⚡ Important:
+Audio continues playing when navigating between routes.
+
+---
+
+# 🎧 Audio Player
+
+## 🖥 Desktop Player
+
+* Song Image
+* Song Name
+* Artist Name
+* Progress Bar
+* Play / Pause
+* Next / Previous
+* Loop
+* Download
+* Queue Panel
+
+## 📱 Mobile Mini Player
+
+* Song Image
+* Song Name
+* Artist Name
+* Progress
+* Play / Pause
+
+### 📱 Fullscreen Player (Mobile)
+
+When user taps song image:
+
+* Smooth animated expansion
+* Loop
+* Download
+* Queue section
+* Drag & drop reordering
+* Remove from queue
+
+---
+
+# 🎵 Song Card UI
+
+Displayed everywhere (Home, Search, Albums, etc):
+
+* Song Image
+* Song Name
+* Artist Name
+* Three-dot menu (⋮)
+
+### Three-dot Options
+
+* Add to Queue
+* Play Next
+* Go to Album
+* Go to Artist
+* Share
+* Download
+
+---
+
+# 🧠 Architecture
+
+## 🎶 Persistent Audio System
+
+* Global Audio Context
+* Centralized state (Redux / Zustand / Context API)
+* Player mounted outside route tree
+* Route change does NOT stop audio
+
+## 🌍 Language-Based Fetching
+
+```js
+{
+  language: selectedLanguage
+}
+```
+
+---
+
+# 🔌 API Configuration
+
+⚠️ The API base URL may change.
+It is stored in environment variables.
+
+## Environment Setup
+
+Create `.env` file:
+
+```
+VITE_API_BASE_URL=https://saavn.sumit.co/api
+```
+
+For Next.js:
+
+```
+NEXT_PUBLIC_API_BASE_URL=https://saavn.sumit.co/api
+```
+
+---
+
+# 📡 API Endpoints
+
+## 🔎 Search
+
+```
+GET /search?query=Imagine+Dragons
+```
+
+### Response Structure
+
+```json
+{
+  "success": true,
+  "data": {
+    "albums": { "results": [], "position": 1 },
+    "songs": { "results": [], "position": 1 },
+    "artists": { "results": [], "position": 1 },
+    "playlists": { "results": [], "position": 1 },
+    "topQuery": { "results": [], "position": 1 }
+  }
+}
+```
+
+---
+
+## 🎵 Get Songs By IDs
+
+```
+GET /songs?ids=123,456,789
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "string",
+      "name": "string",
+      "duration": 200,
+      "language": "string",
+      "explicitContent": true,
+      "album": {},
+      "artists": {},
+      "image": [],
+      "downloadUrl": []
+    }
+  ]
+}
+```
+
+---
+
+## 💿 Albums
+
+```
+GET /albums
+```
+
+---
+
+## 🎤 Artists
+
+```
+GET /artists/{id}
+GET /artists/{id}/songs
+GET /artists/{id}/albums
+```
+
+---
+
+## 📜 Playlists
+
+```
+GET /playlists
+```
+
+---
+
+# 🛠 Installation
+
+## 1️⃣ Clone Repository
+
+```bash
+git clone https://github.com/your-username/rol-music-frontend.git
+cd rol-music-frontend
+```
+
+## 2️⃣ Install Dependencies
+
+```bash
+npm install
+```
+
+## 3️⃣ Start Development Server
+
+```bash
+npm run dev
+```
+
+## 4️⃣ Build for Production
+
+```bash
+npm run build
+```
+
+---
+
+# 🧰 Tech Stack
+
+* React / Next.js
+* React Router
+* Context API / Redux / Zustand
+* Axios / Fetch
+* Tailwind CSS / CSS Modules
+* HTML5 Audio API
+* Drag & Drop (dnd-kit / react-beautiful-dnd)
+
+---
+
+# 📂 Suggested Folder Structure
+
+```
+src/
+│
+├── components/
+│   ├── Player/
+│   ├── SongCard/
+│   ├── Queue/
+│   ├── Sidebar/
+│   ├── FooterNav/
+│
+├── pages/
+│   ├── Home/
+│   ├── Songs/
+│   ├── Albums/
+│   ├── Artists/
+│   ├── Playlists/
+│   ├── Charts/
+│   ├── Settings/
+│
+├── context/
+├── store/
+├── hooks/
+├── services/
+├── utils/
+└── assets/
+```
+
+---
+
+# 🎯 Key Functional Requirements
+
+✅ No authentication required
+✅ Language-based dynamic content
+✅ Persistent audio playback
+✅ Drag & drop queue
+✅ Fully responsive
+✅ Mobile fullscreen player animation
+✅ Download support
+✅ Share support
+
+---
+
+# 🚀 Future Improvements
+
+* Dark / Light Theme
+* PWA Support
+* Offline Mode
+* Recently Played
+* Lyrics Integration
+* Equalizer
+* Favorites System
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome!
+
+1. Fork the repository
+2. Create a new branch
+3. Commit changes
+4. Push branch
+5. Open Pull Request
+
+---
+
+# 📜 License
+
+MIT License
+
+---
+
+# 💡 Vision
+
+ROL Music aims to provide a free, open, multilingual music experience where anyone can instantly start listening — no login barriers, no restrictions.
+
+-

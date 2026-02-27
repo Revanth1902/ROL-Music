@@ -1,0 +1,212 @@
+/* =============================================
+   DETAIL PAGE (Album / Artist / Playlist)
+   ============================================= */
+
+.detail-page {
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px 80px;
+    color: #cbd5e1;
+    min-height: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.detail-empty {
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Back button */
+.detail-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+    margin-bottom: 20px;
+}
+
+.detail-back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Hero section */
+.detail-hero {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    animation: fadeSlideUp 0.5s ease both;
+}
+
+.detail-hero-artist {
+    align-items: center;
+}
+
+.detail-hero-skeleton {
+    opacity: 0.7;
+}
+
+/* Cover art */
+.detail-cover {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.detail-cover-circle {
+    border-radius: 50% !important;
+}
+
+/* Meta */
+.detail-meta {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.detail-type-badge {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 600;
+}
+
+.detail-title {
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    font-weight: 800;
+    color: #f0f4f8;
+    margin: 0;
+    line-height: 1.15;
+}
+
+.detail-sub {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0;
+}
+
+.detail-year {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.38);
+    margin: 0;
+    text-transform: capitalize;
+}
+
+.detail-count {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.38);
+    margin: 0;
+}
+
+/* Play All */
+.detail-play-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 10px 28px;
+    background: linear-gradient(135deg, #6c63ff, #4c3fff);
+    border: none;
+    border-radius: 30px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    align-self: flex-start;
+    transition: all 0.22s ease;
+    box-shadow: 0 6px 20px rgba(108, 99, 255, 0.35);
+}
+
+.detail-play-all-btn:hover {
+    transform: scale(1.04);
+    box-shadow: 0 10px 28px rgba(108, 99, 255, 0.45);
+}
+
+/* Load More button */
+.detail-load-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 14px;
+    background: rgba(108, 99, 255, 0.15);
+    border: 1px solid rgba(108, 99, 255, 0.3);
+    border-radius: 20px;
+    color: #a78bfa;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.detail-load-more-btn:hover:not(:disabled) {
+    background: rgba(108, 99, 255, 0.25);
+}
+
+.detail-load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* Song list */
+.detail-song-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Animation */
+@keyframes fadeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .detail-page {
+        padding: 12px 14px 80px;
+    }
+
+    .detail-hero {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .detail-cover {
+        width: 160px;
+        height: 160px;
+    }
+
+    .detail-play-all-btn {
+        align-self: center;
+    }
+
+    .detail-title {
+        font-size: 1.4rem;
+    }
+}

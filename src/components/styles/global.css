@@ -1,0 +1,38 @@
+/* global.css - global layout and utilities */
+html,body,#root { height:100%; }
+body{
+  margin:0;
+  font-family: Inter, "Roboto", "Helvetica Neue", Arial, sans-serif;
+  background: radial-gradient(1200px 600px at 10% 20%, rgba(30,215,96,0.03), transparent 6%),
+              linear-gradient(180deg,#061018 0%, #071318 100%);
+  color: var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* container helpers */
+.container {
+  padding: var(--space);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* small helpers */
+.hint { color:var(--muted); font-size:var(--fs-sm); }
+.kicker { color:var(--accent); font-weight:700; font-size:var(--fs-sm); }
+
+/* clickable */
+.clickable { cursor: pointer; }
+.rounded { border-radius: var(--r-sm); }
+
+/* Glowing accent focus */
+.glow-focus:focus, .glow-focus:active {
+  outline: none;
+  box-shadow: 0 0 18px rgba(30,215,96,0.12);
+  border-radius: 8px;
+}
+
+/* Hide default range track on iOS fix */
+input[type="range"] { -webkit-appearance:none; }
