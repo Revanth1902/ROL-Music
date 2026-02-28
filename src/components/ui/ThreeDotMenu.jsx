@@ -3,7 +3,7 @@ import { Menu, MenuItem } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { useQueue } from '../../contexts/QueueContext'
 import { useAudioPlayer } from '../../contexts/AudioPlayerContext'
-import { getSongById } from '../../api/apiService'
+import { getSongById, searchSongs } from '../../api/apiService'
 
 // React Icons
 import { MdMoreVert } from 'react-icons/md'
@@ -11,16 +11,21 @@ import { BsMusicNoteList, BsFillSkipEndFill } from 'react-icons/bs'
 import { MdAlbum, MdPerson, MdShare, MdDownload } from 'react-icons/md'
 import { TbLoader2 } from 'react-icons/tb'
 
-// ─── Resolve src if missing ───────────────────────────
+// ─── Resolve src with 3-layer fallback ───────────────
 async function resolveSong(song) {
   if (song?.src) return song
   if (!song?.id) return song
   try {
+    // Layer 1: fetch by ID
     const full = await getSongById(song.id)
-    return full?.src ? { ...song, ...full } : song
-  } catch {
-    return song
-  }
+    if (full?.src) return { ...song, ...full }
+
+    // Layer 2: search by title + artist
+    const result = await searchSongs(`${song.title} ${song.artistName}`, 0, 5)
+    const match = result.results?.find(s => s.id === song.id) || result.results?.[0]
+    if (match?.src) return { ...song, ...match }
+  } catch { }
+  return song
 }
 
 export default function ThreeDotMenu({ song, songList = [] }) {

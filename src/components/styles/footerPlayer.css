@@ -949,3 +949,78 @@
   font-size: 0.84rem;
   margin: 2px 0;
 }
+
+/* ── Drag handle in mobile queue ── */
+.fs-queue-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 1.2rem;
+  padding: 0 4px 0 2px;
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.fs-queue-drag-handle:active {
+  cursor: grabbing;
+}
+
+.fs-queue-drag-handle:hover {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Dragging state: lifted card appearance */
+.fs-queue-dragging {
+  background: rgba(108, 99, 255, 0.18) !important;
+  border-color: rgba(108, 99, 255, 0.5) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(108, 99, 255, 0.3);
+  border-radius: 12px;
+  z-index: 9999;
+}
+
+/* Thumb wrapper: needed so ROL badge can be positioned absolutely */
+.fs-queue-thumb-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.fs-queue-thumb-wrap .fs-queue-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.fs-queue-thumb-wrap .img-rol-badge {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+  border-radius: 50%;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+
+/* ROL logo on fullscreen album art */
+.fs-art-logo {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 32px;
+  height: 32px;
+  z-index: 5;
+  opacity: 0.55;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+  border-radius: 50%;
+}
+
+/* fs-art-wrap needs to be position:relative for the logo overlay */
+.fs-art-wrap {
+  position: relative;
+}

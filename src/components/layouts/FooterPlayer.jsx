@@ -18,6 +18,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { MdDragHandle } from 'react-icons/md';
+import rolLogo from '../../assets/rol-logo1.png';
 import SeekBar from "../ui/SeekBar"
 import { useAudioPlayer } from "../../contexts/AudioPlayerContext";
 import { useQueue } from "../../contexts/QueueContext";
@@ -408,6 +410,8 @@ export default function FooterPlayer() {
                     alt={current.title}
                     onError={e => { e.target.src = `https://ui-avatars.com/api/?name=♪&background=1a1040&color=a78bfa&size=320` }}
                   />
+                  {/* ROL watermark */}
+                  <img src={rolLogo} className="fs-art-logo" alt="ROL" aria-hidden />
                 </div>
 
                 {/* ── Song Info ── */}
@@ -489,7 +493,7 @@ export default function FooterPlayer() {
                 </div>
               </>
             ) : (
-              /* ── Queue Tab ── */
+              /* ── Queue Tab (draggable) ── */
               <div className="fs-queue-strip">
                 <div className="fs-queue-header">Up Next — {queue.length} songs</div>
                 {queue.length === 0 ? (
@@ -499,31 +503,63 @@ export default function FooterPlayer() {
                     <p>Add songs using the ⋮ menu on any song.</p>
                   </div>
                 ) : (
-                  queue.map((track, i) => (
-                    <div
-                      key={`${track.id}-${i}`}
-                      className="fs-queue-item"
-                      onClick={() => { playSong(track); setQueue(queue.slice(i + 1)); }}
-                    >
-                      <img
-                        src={track.cover}
-                        className="fs-queue-thumb"
-                        alt={track.title}
-                        onError={e => e.target.style.display = 'none'}
-                      />
-                      <div className="fs-queue-info">
-                        <div className="fs-queue-title">{track.title}</div>
-                        <div className="fs-queue-artist">{track.artistName}</div>
-                      </div>
-                      <button
-                        className="fs-queue-remove"
-                        onClick={e => { e.stopPropagation(); removeFromQueue(track.id); }}
-                        title="Remove"
-                      >
-                        <CloseIcon sx={{ fontSize: '0.9rem' }} />
-                      </button>
-                    </div>
-                  ))
+                  <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable droppableId="fs-queue">
+                      {(provided) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          style={{ paddingBottom: 80 }}
+                        >
+                          {queue.map((track, i) => (
+                            <Draggable key={`${track.id}-${i}`} draggableId={`fs-q-${track.id}-${i}`} index={i}>
+                              {(drag, snapshot) => (
+                                <div
+                                  ref={drag.innerRef}
+                                  {...drag.draggableProps}
+                                  className={`fs-queue-item${snapshot.isDragging ? ' fs-queue-dragging' : ''}`}
+                                  onClick={() => { playSong(track); setQueue(queue.slice(i + 1)); }}
+                                >
+                                  {/* Drag handle */}
+                                  <div
+                                    {...drag.dragHandleProps}
+                                    className="fs-queue-drag-handle"
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <MdDragHandle />
+                                  </div>
+
+                                  <div className="fs-queue-thumb-wrap">
+                                    <img
+                                      src={track.cover}
+                                      className="fs-queue-thumb"
+                                      alt={track.title}
+                                      onError={e => e.target.style.display = 'none'}
+                                    />
+                                    <img src={rolLogo} className="img-rol-badge" alt="" aria-hidden />
+                                  </div>
+
+                                  <div className="fs-queue-info">
+                                    <div className="fs-queue-title">{track.title}</div>
+                                    <div className="fs-queue-artist">{track.artistName}</div>
+                                  </div>
+
+                                  <button
+                                    className="fs-queue-remove"
+                                    onClick={e => { e.stopPropagation(); removeFromQueue(track.id); }}
+                                    title="Remove"
+                                  >
+                                    <CloseIcon sx={{ fontSize: '0.9rem' }} />
+                                  </button>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
                 )}
               </div>
             )}

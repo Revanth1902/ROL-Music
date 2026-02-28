@@ -207,6 +207,28 @@ export async function getSongById(id) {
     return arr.map(normalizeSong).find(s => s?.src) || null;
 }
 
+// ── BATCH song fetch — up to 50 IDs per request ───────
+// POST-friendly: jiosavvan supports /songs?id=id1,id2,...
+export async function getSongsByIds(ids = []) {
+    if (!ids.length) return [];
+    const CHUNK = 50;
+    const results = [];
+
+    for (let i = 0; i < ids.length; i += CHUNK) {
+        const chunk = ids.slice(i, i + CHUNK).join(',');
+        try {
+            const data = await songFetch(`/songs?id=${chunk}`);
+            if (!data) continue;
+            const arr = Array.isArray(data) ? data : [data];
+            arr.forEach(s => {
+                const n = normalizeSong(s);
+                if (n) results.push(n);
+            });
+        } catch { /* skip failed chunks */ }
+    }
+    return results;
+}
+
 // ── MODULES (Home) ─────────────────────────────────────
 export async function getModules(language = 'hindi') {
     return songFetch(`/modules?language=${language}`);
@@ -220,11 +242,48 @@ export async function getModulesMulti(languages = ['hindi']) {
 }
 
 // ── ALBUM ──────────────────────────────────────────────
-// GET https://rol-backend.onrender.com/api/albums?id={id}
+// Layer 1: backend (rol-backend) — has richer data for most IDs
+// Layer 2: jiosavvan /albums?id= — handles "i-XXXXX" style IDs from modules
 export async function getAlbumById(id) {
     if (!id) return null;
-    const data = await backendFetch(`/albums?id=${id}`);
-    return normalizeAlbum(data);
+
+    // Layer 1: try our backend first
+    const backendData = await backendFetch(`/albums?id=${id}`);
+    if (backendData) {
+        const album = normalizeAlbum(backendData);
+        if (album?.id) return album;
+    }
+
+    // Layer 2: fallback to jiosavvan directly (handles "i-XXXX" IDs from modules)
+    try {
+        const res = await fetch(`${SONG_BASE}/albums?id=${encodeURIComponent(id)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        // jiosavvan album schema: { data: { id, name, songs: [...], ... } }
+        const raw = json?.data ?? json;
+        if (!raw?.id) return null;
+
+        // Songs inside the jiosavvan album response
+        const songs = (raw.songs || []).map(s => normalizeSong(s)).filter(Boolean);
+        const cover = getBestImage(raw.image);
+        const primaryArtists = raw.artists?.primary || raw.artists?.all || [];
+        return {
+            id: raw.id,
+            title: decodeEntities(raw.name || raw.title || 'Unknown Album'),
+            artist: Array.isArray(primaryArtists)
+                ? primaryArtists.map(x => decodeEntities(x.name || '')).join(', ')
+                : decodeEntities(raw.primaryArtists || ''),
+            year: raw.year || raw.releaseDate?.substring(0, 4) || '',
+            language: raw.language || '',
+            cover,
+            songCount: Number(raw.songCount) || songs.length,
+            songs,
+        };
+    } catch (err) {
+        console.error('[getAlbumById jiosavvan fallback]', id, err.message);
+    }
+
+    return null;
 }
 
 // ── ARTIST ────────────────────────────────────────────

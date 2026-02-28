@@ -3,7 +3,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import PauseIcon from '@mui/icons-material/Pause'
 import { useAudioPlayer } from '../../contexts/AudioPlayerContext'
 import { useQueue } from '../../contexts/QueueContext'
-import { getSongById } from '../../api/apiService'
+import { getSongById, searchSongs } from '../../api/apiService'
 import ThreeDotMenu from '../ui/ThreeDotMenu'
 import '../../components/styles/songListItem.css'
 
@@ -29,35 +29,37 @@ export default function SongListItem({ song, index, songList = [] }) {
     const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent((song.title || 'M').substring(0, 2))}&background=1a1040&color=a78bfa&size=60&bold=true`
 
     const handlePlay = async () => {
-        if (isActive) {
-            // Already playing this song — toggle handled elsewhere
-            return
-        }
+        if (isActive) return   // already current — ignore (toggle handled by player)
 
         setLoading(true)
         let playable = song
 
-        // If no src, try fetching from jiosavvan by ID
         if (!playable.src) {
             try {
+                // Layer 1: fetch directly by ID
                 const fetched = await getSongById(song.id)
-                if (fetched?.src) playable = { ...song, ...fetched }
+                if (fetched?.src) {
+                    playable = { ...song, ...fetched }
+                } else {
+                    // Layer 2: search by title + artist name
+                    const result = await searchSongs(`${song.title} ${song.artistName}`, 0, 5)
+                    const match = result.results?.find(s => s.id === song.id)
+                        || result.results?.[0]
+                    if (match?.src) playable = { ...song, ...match }
+                }
             } catch { }
         }
         setLoading(false)
 
-        if (playable.src) {
-            playSong(playable)
+        if (!playable.src) return  // still nothing — give up silently
 
-            // Auto-queue the rest of the songs in the list after this one
-            if (songList.length > 1) {
-                const idx = songList.findIndex(s => s.id === song.id)
-                const afterThis = idx >= 0 ? songList.slice(idx + 1) : []
-                // Resolve songs that have src directly, defer others (they'll be fetched when played)
-                if (afterThis.length > 0) {
-                    setQueue(afterThis)
-                }
-            }
+        playSong(playable)
+
+        // Auto-queue the rest of the list after this song
+        if (songList.length > 1) {
+            const idx = songList.findIndex(s => s.id === song.id)
+            const afterThis = idx >= 0 ? songList.slice(idx + 1) : []
+            if (afterThis.length > 0) setQueue(afterThis)
         }
     }
 

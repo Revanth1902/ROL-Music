@@ -12,39 +12,39 @@ export const AudioPlayerProvider = ({ children }) => {
   const [loop, setLoop] = useState(false);
   const { queue, setQueue } = useQueue();
 
-  // Web Audio
+  // Web Audio graph — created ONCE and reused for all songs
   const audioCtxRef = useRef(null);
-  const sourceRef = useRef(null);
+  const sourceRef = useRef(null);   // MediaElementSource (only created once)
   const gainNode = useRef(null);
   const convolver = useRef(null);
   const eqBandsRef = useRef([]);
+  const graphReady = useRef(false);  // guard: only init graph once
 
   const EQ_FREQUENCIES = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000];
 
-  // Presets
   const EQ_PRESETS = {
-    Balanced: [0,0,0,0,0,0,0,0,0],
-    Flat: [0,0,0,0,0,0,0,0,0],
-    Jazz: [0,0,2,3,2,1,0,0,0],
-    "Bass Boost": [5,4,3,1,0,-1,-2,-2,-2],
-    "Treble Boost": [-2,-2,-2,0,1,2,3,4,5],
-    Rock: [4,3,2,1,0,1,2,3,4],
-    Pop: [3,2,1,0,0,1,2,3,3],
-    Classical: [-2,-1,0,1,2,1,0,-1,-2],
-    Acoustic: [0,1,2,3,2,1,0,0,0],
-    "V-Shape": [5,3,0,0,0,0,0,3,5],
-    Dance: [4,3,2,1,0,1,2,3,4],
-    "Hip-Hop": [6,4,2,0,0,0,2,4,6],
-    Electronic: [5,4,3,1,0,1,3,4,5],
-    Vocal: [-1,0,1,2,3,2,1,0,-1],
-    Party: [5,4,3,2,1,2,3,4,5],
-    "Large Hall": [0,1,2,3,3,2,1,0,0],
+    Balanced: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    Flat: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    Jazz: [0, 0, 2, 3, 2, 1, 0, 0, 0],
+    "Bass Boost": [5, 4, 3, 1, 0, -1, -2, -2, -2],
+    "Treble Boost": [-2, -2, -2, 0, 1, 2, 3, 4, 5],
+    Rock: [4, 3, 2, 1, 0, 1, 2, 3, 4],
+    Pop: [3, 2, 1, 0, 0, 1, 2, 3, 3],
+    Classical: [-2, -1, 0, 1, 2, 1, 0, -1, -2],
+    Acoustic: [0, 1, 2, 3, 2, 1, 0, 0, 0],
+    "V-Shape": [5, 3, 0, 0, 0, 0, 0, 3, 5],
+    Dance: [4, 3, 2, 1, 0, 1, 2, 3, 4],
+    "Hip-Hop": [6, 4, 2, 0, 0, 0, 2, 4, 6],
+    Electronic: [5, 4, 3, 1, 0, 1, 3, 4, 5],
+    Vocal: [-1, 0, 1, 2, 3, 2, 1, 0, -1],
+    Party: [5, 4, 3, 2, 1, 2, 3, 4, 5],
+    "Large Hall": [0, 1, 2, 3, 3, 2, 1, 0, 0],
   };
 
   const [effects, setEffects] = useState({ hall: false });
   const [eqValues, setEqValues] = useState(EQ_PRESETS.Flat);
 
-  // Audio events
+  // ── Audio events ──────────────────────────────────────────
   useEffect(() => {
     const audio = audioRef.current;
     audio.crossOrigin = "anonymous";
@@ -57,7 +57,9 @@ export const AudioPlayerProvider = ({ children }) => {
         const next = queue[0];
         setQueue(queue.slice(1));
         playSong(next);
-      } else { setPlaying(false); }
+      } else {
+        setPlaying(false);
+      }
     };
 
     audio.addEventListener("timeupdate", onTime);
@@ -71,61 +73,104 @@ export const AudioPlayerProvider = ({ children }) => {
     };
   }, [loop, queue, setQueue]);
 
-  // Init WebAudio
+  // ── Init Web Audio Graph — called ONCE ────────────────────
+  // We must never call ctx.createMediaElementSource(audio) twice for the
+  // same <audio> element — it throws InvalidStateError and breaks playback.
   const initAudioGraph = () => {
-    if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    const ctx = audioCtxRef.current;
-    const audio = audioRef.current;
+    if (graphReady.current) return;   // already set up — skip entirely
 
-    try { sourceRef.current?.disconnect(); } catch {}
-    sourceRef.current = ctx.createMediaElementSource(audio);
-    gainNode.current = ctx.createGain();
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      const audio = audioRef.current;
 
-    // EQ filters
-    eqBandsRef.current = EQ_FREQUENCIES.map((freq, i) => {
-      const filter = ctx.createBiquadFilter();
-      filter.type = "peaking";
-      filter.frequency.value = freq;
-      filter.Q.value = 1;
-      filter.gain.value = eqValues[i];
-      return filter;
-    });
+      sourceRef.current = ctx.createMediaElementSource(audio);
+      gainNode.current = ctx.createGain();
 
-    // Convolver for hall
-    convolver.current = ctx.createConvolver();
-    if (effects.hall) {
-      const buffer = ctx.createBuffer(2, ctx.sampleRate * 2, ctx.sampleRate);
-      convolver.current.buffer = buffer;
+      // EQ filters
+      eqBandsRef.current = EQ_FREQUENCIES.map((freq, i) => {
+        const filter = ctx.createBiquadFilter();
+        filter.type = "peaking";
+        filter.frequency.value = freq;
+        filter.Q.value = 1;
+        filter.gain.value = eqValues[i];
+        return filter;
+      });
+
+      // Convolver (hall reverb) — optional
+      convolver.current = ctx.createConvolver();
+
+      // Connect: source → EQ chain → gain → destination
+      let chain = sourceRef.current;
+      eqBandsRef.current.forEach(f => { chain.connect(f); chain = f; });
+      chain.connect(gainNode.current).connect(ctx.destination);
+
+      graphReady.current = true;
+    } catch (err) {
+      console.warn("[AudioGraph] init failed:", err.message);
     }
-
-    // Connect nodes: source -> EQ -> convolver(optional) -> gain -> destination
-    let nodeChain = sourceRef.current;
-    eqBandsRef.current.forEach(filter => nodeChain.connect(filter) && (nodeChain = filter));
-    if (effects.hall) nodeChain.connect(convolver.current) && (nodeChain = convolver.current);
-    nodeChain.connect(gainNode.current).connect(ctx.destination);
   };
 
+  // Resume suspended AudioContext (needed after user gesture)
+  const resumeContext = async () => {
+    if (audioCtxRef.current?.state === "suspended") {
+      try { await audioCtxRef.current.resume(); } catch { }
+    }
+  };
+
+  // ── playSong ──────────────────────────────────────────────
+  // Safe to call any number of times with different songs.
   const playSong = async (song) => {
-    if (!song) return;
+    if (!song?.src) return;
     const audio = audioRef.current;
+
     setCurrent(song);
+    setProgress(0);
+    setDuration(0);
+
+    // Set new source — MediaElementSource automatically follows this
     audio.src = song.src;
+    audio.load();   // force reload so 'loadedmetadata' fires for the new src
+
+    // Init graph on first play (user gesture unlocks AudioContext)
     initAudioGraph();
-    try { await audio.play(); setPlaying(true); } catch {}
-    if (audioCtxRef.current?.state === "suspended") await audioCtxRef.current.resume();
+    await resumeContext();
+
+    try {
+      await audio.play();
+      setPlaying(true);
+    } catch (err) {
+      console.warn("[playSong] play() failed:", err.message);
+      setPlaying(false);
+    }
   };
 
+  // ── togglePlay ────────────────────────────────────────────
   const togglePlay = async () => {
     const audio = audioRef.current;
     if (!current) return;
-    if (playing) { audio.pause(); setPlaying(false); } 
-    else { await audio.play(); setPlaying(true); if (audioCtxRef.current?.state === "suspended") await audioCtxRef.current.resume(); }
+
+    initAudioGraph();
+    await resumeContext();
+
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      try { await audio.play(); setPlaying(true); } catch { }
+    }
   };
 
-  const seek = (t) => { audioRef.current.currentTime = Math.max(0, Math.min(t, duration)); setProgress(audioRef.current.currentTime); };
+  const seek = (t) => {
+    audioRef.current.currentTime = Math.max(0, Math.min(t, duration));
+    setProgress(audioRef.current.currentTime);
+  };
+
   const toggleLoop = () => setLoop(l => !l);
 
-  // EQ functions
+  // ── EQ ────────────────────────────────────────────────────
   const setEqBand = (index, value) => {
     setEqValues(prev => {
       const updated = [...prev];
@@ -138,11 +183,16 @@ export const AudioPlayerProvider = ({ children }) => {
   const setEqPreset = (presetName) => {
     const preset = EQ_PRESETS[presetName];
     if (!preset) return;
-    preset.forEach((v,i) => setEqBand(i,v));
+    preset.forEach((v, i) => setEqBand(i, v));
   };
 
   const resetEQ = () => setEqPreset("Flat");
-  const setHall = (enabled) => { setEffects(prev => ({ ...prev, hall: enabled })); initAudioGraph(); };
+  const setHall = (enabled) => {
+    setEffects(prev => ({ ...prev, hall: enabled }));
+    // Hall effect requires reconnecting the graph — reset and reinit
+    graphReady.current = false;
+    initAudioGraph();
+  };
 
   return (
     <AudioPlayerContext.Provider value={{

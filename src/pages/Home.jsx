@@ -59,6 +59,9 @@ function LangBlock({ langCode, data }) {
 
   if (!data) return null
 
+  // Strip "i-" prefix that jiosavvan modules put on some album IDs
+  const cleanId = (id) => (typeof id === 'string' && id.startsWith('i-') ? id.slice(2) : id)
+
   function pickCover(imageArr) {
     if (!imageArr || !imageArr.length) return ''
     const best = imageArr.find(i => i.quality === '500x500') || imageArr[imageArr.length - 1]
@@ -67,14 +70,14 @@ function LangBlock({ langCode, data }) {
 
   const trendingSongs = (data.trending?.songs || []).map(s => normalizeSong(s)).filter(Boolean)
   const trendingAlbums = (data.trending?.albums || []).map(a => ({
-    id: a.id,
+    id: cleanId(a.id),
     title: decodeEntities(a.name || a.title || 'Unknown'),
     cover: pickCover(a.image),
     artist: Array.isArray(a.artists) ? a.artists.map(x => x.name).join(', ') : '',
     year: a.releaseDate?.substring(0, 4) || a.year || '',
   }))
   const albums = (data.albums || []).map(a => ({
-    id: a.id,
+    id: cleanId(a.id),
     title: decodeEntities(a.name || a.title || 'Unknown'),
     cover: pickCover(a.image),
     artist: Array.isArray(a.artists) ? a.artists.map(x => x.name).join(', ') : '',
@@ -111,7 +114,9 @@ function LangBlock({ langCode, data }) {
           icon={<BsFire className="icon-fire" />}
           id={`trending-songs-${langCode}`}
         >
-          {trendingSongs.slice(0, 20).map(s => <SongCard song={s} key={s.id} />)}
+          {trendingSongs.slice(0, 20).map(s => (
+            <SongCard song={s} key={s.id} songList={trendingSongs} />
+          ))}
         </HSection>
       )}
 

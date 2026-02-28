@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import rolLogo from '../../assets/rol-logo1.png'
 import '../styles/cards.css'
 
 export default function PlaylistCard({ playlist }) {
@@ -7,7 +9,9 @@ export default function PlaylistCard({ playlist }) {
     const [imgErr, setImgErr] = useState(false)
     if (!playlist) return null
 
-    const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent((playlist.title || 'P').substring(0, 2))}&background=1a1040&color=a78bfa&size=300&bold=true`
+    const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        (playlist.title || 'P').substring(0, 2)
+    )}&background=1a1040&color=a78bfa&size=300&bold=true`
 
     return (
         <div
@@ -24,8 +28,9 @@ export default function PlaylistCard({ playlist }) {
                     onError={() => setImgErr(true)}
                     loading="lazy"
                 />
+                <img src={rolLogo} className="img-rol-badge" alt="" aria-hidden />
                 <div className="album-card-overlay">
-                    <span className="album-card-play">▶</span>
+                    <PlayArrowIcon className="album-card-play" />
                 </div>
             </div>
             <div className="album-card-info">
