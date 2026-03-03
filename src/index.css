@@ -47,6 +47,17 @@ body {
   height: 100vh;
   background: linear-gradient(140deg, #080c1a 0%, #0c1220 50%, #0a0f1e 100%);
   color: #e7e7e7;
+
+  /* Disable text selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Disable image dragging */
+img {
+  -webkit-user-drag: none;
 }
 
 /* =========================================

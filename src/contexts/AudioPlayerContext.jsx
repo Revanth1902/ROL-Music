@@ -7,6 +7,7 @@ export const AudioPlayerProvider = ({ children }) => {
   const audioRef = useRef(new Audio());
   const [current, setCurrent] = useState(null);
   const [playing, setPlaying] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loop, setLoop] = useState(false);
@@ -62,14 +63,24 @@ export const AudioPlayerProvider = ({ children }) => {
       }
     };
 
+    const onWaiting = () => setAudioLoading(true);
+    const onCanPlay = () => setAudioLoading(false);
+    const onPlaying = () => setAudioLoading(false);
+
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onLoaded);
     audio.addEventListener("ended", onEnd);
+    audio.addEventListener("waiting", onWaiting);
+    audio.addEventListener("canplay", onCanPlay);
+    audio.addEventListener("playing", onPlaying);
 
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onLoaded);
       audio.removeEventListener("ended", onEnd);
+      audio.removeEventListener("waiting", onWaiting);
+      audio.removeEventListener("canplay", onCanPlay);
+      audio.removeEventListener("playing", onPlaying);
     };
   }, [loop, queue, setQueue]);
 
@@ -121,9 +132,46 @@ export const AudioPlayerProvider = ({ children }) => {
   };
 
   // ── playSong ──────────────────────────────────────────────
-  // Safe to call any number of times with different songs.
-  const playSong = async (song) => {
-    if (!song?.src) return;
+  // Safe to call any number of times with different songs. Automatically resolves URLs.
+  const playSong = async (rawSong) => {
+    if (!rawSong) return;
+
+    // Assume it might need resolving
+    let song = rawSong;
+
+    // Optional: show loading state on the UI immediately
+    setCurrent(song);
+    setAudioLoading(true);
+
+    if (!song.src && song.id) {
+      try {
+        // Lazy load api to avoid heavy imports in pure context
+        const { getSongById, searchSongs } = await import('../api/apiService');
+
+        // Layer 1: direct ID
+        let playable = await getSongById(song.id);
+
+        // Layer 2: fallback search
+        if (!playable?.src) {
+          const result = await searchSongs(`${song.title} ${song.artistName}`, 0, 5);
+          const match = result.results?.find(s => s.id === song.id) || result.results?.[0];
+          if (match?.src) playable = match;
+        }
+
+        if (playable?.src) {
+          song = { ...song, ...playable };
+        }
+      } catch (err) {
+        console.error("[playSong] resolution failed:", err);
+      }
+    }
+
+    if (!song.src) {
+      setAudioLoading(false);
+      setPlaying(false);
+      return; // still no src, abort
+    }
+
     const audio = audioRef.current;
 
     setCurrent(song);
@@ -196,7 +244,7 @@ export const AudioPlayerProvider = ({ children }) => {
 
   return (
     <AudioPlayerContext.Provider value={{
-      audioRef, current, playing, playSong, togglePlay, progress, duration, seek,
+      audioRef, current, playing, audioLoading, playSong, togglePlay, progress, duration, seek,
       loop, toggleLoop, effects, setHall,
       eqValues, setEqBand, setEqPreset, resetEQ,
     }}>

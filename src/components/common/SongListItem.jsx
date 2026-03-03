@@ -17,46 +17,27 @@ function fmtDuration(sec) {
 // songList = optional array of all songs in current context (album/artist/playlist)
 // so when a song is played, the rest are auto-queued
 export default function SongListItem({ song, index, songList = [] }) {
-    const { playSong, current, playing } = useAudioPlayer()
+    const { playSong, current, playing, togglePlay, audioLoading } = useAudioPlayer()
     const { setQueue } = useQueue()
     const isActive = current?.id === song.id
     const isPlaying = isActive && playing
-    const [loading, setLoading] = useState(false)
+    const isBuffering = isActive && audioLoading
     const [imgErr, setImgErr] = useState(false)
 
     if (!song) return null
 
     const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent((song.title || 'M').substring(0, 2))}&background=1a1040&color=a78bfa&size=60&bold=true`
 
-    const handlePlay = async () => {
-        if (isActive) return   // already current — ignore (toggle handled by player)
-
-        setLoading(true)
-        let playable = song
-
-        if (!playable.src) {
-            try {
-                // Layer 1: fetch directly by ID
-                const fetched = await getSongById(song.id)
-                if (fetched?.src) {
-                    playable = { ...song, ...fetched }
-                } else {
-                    // Layer 2: search by title + artist name
-                    const result = await searchSongs(`${song.title} ${song.artistName}`, 0, 5)
-                    const match = result.results?.find(s => s.id === song.id)
-                        || result.results?.[0]
-                    if (match?.src) playable = { ...song, ...match }
-                }
-            } catch { }
+    const handlePlay = () => {
+        if (isActive) {
+            togglePlay()
+            return
         }
-        setLoading(false)
 
-        if (!playable.src) return  // still nothing — give up silently
-
-        playSong(playable)
+        playSong(song)
 
         // Auto-queue the rest of the list after this song
-        if (songList.length > 1) {
+        if (songList && songList.length > 0) {
             const idx = songList.findIndex(s => s.id === song.id)
             const afterThis = idx >= 0 ? songList.slice(idx + 1) : []
             if (afterThis.length > 0) setQueue(afterThis)
@@ -71,14 +52,14 @@ export default function SongListItem({ song, index, songList = [] }) {
         >
             {/* Index / Play icon */}
             <div className="sli-index">
-                {loading ? (
+                {isBuffering ? (
                     <div className="sli-spinner" />
                 ) : isPlaying ? (
                     <PauseIcon className="sli-play-icon" />
                 ) : (
                     <span className="sli-num">{index}</span>
                 )}
-                {!isPlaying && !loading && <PlayArrowIcon className="sli-play-icon sli-play-hover" />}
+                {!isPlaying && !isBuffering && <PlayArrowIcon className="sli-play-icon sli-play-hover" />}
             </div>
 
             {/* Thumbnail */}

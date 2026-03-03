@@ -66,15 +66,20 @@ async function songFetch(path) {
 }
 
 async function backendFetch(path) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500); // Fail fast if Render backend is sleeping
     try {
-        const res = await fetch(`${BACKEND_BASE}${path}`);
+        const res = await fetch(`${BACKEND_BASE}${path}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (json?.success === false) throw new Error(json.message || 'API error');
         return json?.data ?? json;
     } catch (err) {
+        clearTimeout(timeoutId);
+
         console.error('[backendFetch]', path, err.message);
-        return null;
+        return null; // Will trigger fallback in consumer if available
     }
 }
 

@@ -38,6 +38,25 @@ export default function SearchBar() {
     setLoading(false)
   }, [])
 
+  const handleSongClick = async (song) => {
+    setOpen(false)
+    let playable = song
+    if (!playable.src) {
+      try {
+        const fetched = await import('../../api/apiService').then(m => m.getSongById(song.id))
+        if (fetched?.src) {
+          playable = { ...song, ...fetched }
+        } else {
+          const searchRes = await import('../../api/apiService').then(m => m.searchSongs(`${song.title} ${song.artistName}`, 0, 5))
+          const match = searchRes.results?.find(s => s.id === song.id) || searchRes.results?.[0]
+          if (match?.src) playable = { ...song, ...match }
+        }
+      } catch { }
+    }
+    if (playable.src) playSong(playable)
+  }
+
+
   const handleChange = (e) => {
     const val = e.target.value
     setQuery(val)
@@ -127,12 +146,12 @@ export default function SearchBar() {
               <div className="search-section-title">Songs</div>
               {songs.map(s => {
                 const song = normalizeSong(s)
-                if (!song || !song.src) return null
+                if (!song) return null
                 return (
                   <div
                     key={song.id}
                     className="search-item"
-                    onClick={() => { playSong(song); setOpen(false) }}
+                    onClick={() => handleSongClick(song)}
                   >
                     <img src={song.cover || ''} alt={song.title} className="search-item-img" onError={e => e.target.style.display = 'none'} />
                     <div className="search-item-info">

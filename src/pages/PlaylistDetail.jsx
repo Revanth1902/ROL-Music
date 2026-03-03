@@ -16,6 +16,16 @@ export default function PlaylistDetail() {
     const [loading, setLoading] = useState(true)
     const { playSong } = useAudioPlayer()
     const { addToQueue } = useQueue()
+    const [scrolled, setScrolled] = useState(false)
+
+    useEffect(() => {
+        const mc = document.querySelector('.main-content')
+        if (!mc) return
+        const handleScroll = () => setScrolled(mc.scrollTop > 50)
+        mc.addEventListener('scroll', handleScroll)
+        handleScroll()
+        return () => mc.removeEventListener('scroll', handleScroll)
+    }, [])
 
     useEffect(() => {
         if (!id) return
@@ -29,10 +39,8 @@ export default function PlaylistDetail() {
 
     const playAll = () => {
         if (!playlist?.songs?.length) return
-        const playable = playlist.songs.filter(s => s.src)
-        if (!playable.length) return
-        playSong(playable[0])
-        playable.slice(1).forEach(s => addToQueue(s))
+        playSong(playlist.songs[0])
+        playlist.songs.slice(1).forEach(s => addToQueue(s))
     }
 
     if (loading) return (
@@ -64,7 +72,7 @@ export default function PlaylistDetail() {
             </button>
 
             {/* Hero */}
-            <div className="detail-hero">
+            <div className={`detail-hero ${scrolled ? 'scrolled' : ''}`}>
                 <img
                     src={playlist.cover}
                     alt={playlist.title}
@@ -80,9 +88,11 @@ export default function PlaylistDetail() {
                         </p>
                     )}
                     <p className="detail-count">{playlist.songs.length} songs</p>
-                    <button className="detail-play-all-btn" onClick={playAll}>
-                        <PlayArrowIcon /> Play All
-                    </button>
+                    <div>
+                        <button className="detail-play-all-btn" onClick={playAll}>
+                            <PlayArrowIcon /> Play All
+                        </button>
+                    </div>
                 </div>
             </div>
 

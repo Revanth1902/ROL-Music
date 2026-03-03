@@ -18,6 +18,16 @@ export default function AlbumDetail() {
     const [resolving, setResolving] = useState(false)
     const { playSong } = useAudioPlayer()
     const { setQueue } = useQueue()
+    const [scrolled, setScrolled] = useState(false)
+
+    useEffect(() => {
+        const mc = document.querySelector('.main-content')
+        if (!mc) return
+        const handleScroll = () => setScrolled(mc.scrollTop > 50)
+        mc.addEventListener('scroll', handleScroll)
+        handleScroll()
+        return () => mc.removeEventListener('scroll', handleScroll)
+    }, [])
 
     useEffect(() => {
         if (!id) return
@@ -58,10 +68,9 @@ export default function AlbumDetail() {
     }, [id])
 
     const playAll = useCallback(() => {
-        const playable = songs.filter(s => s.src)
-        if (!playable.length) return
-        playSong(playable[0])
-        setQueue(playable.slice(1))
+        if (!songs.length) return
+        playSong(songs[0])
+        setQueue(songs.slice(1))
     }, [songs, playSong, setQueue])
 
     if (loading) return (
@@ -95,7 +104,7 @@ export default function AlbumDetail() {
             </button>
 
             {/* Hero */}
-            <div className="detail-hero">
+            <div className={`detail-hero ${scrolled ? 'scrolled' : ''}`}>
                 <img src={album.cover} alt={album.title} className="detail-cover"
                     onError={e => {
                         e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(

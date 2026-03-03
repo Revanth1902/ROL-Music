@@ -23,7 +23,8 @@ import rolLogo from '../../assets/rol-logo1.png';
 import SeekBar from "../ui/SeekBar"
 import { useAudioPlayer } from "../../contexts/AudioPlayerContext";
 import { useQueue } from "../../contexts/QueueContext";
-
+import { shareSong } from "../../utils/share";
+import { getSongById, searchSongs } from "../../api/apiService";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import * as ID3Writer from 'browser-id3-writer';
 
@@ -33,7 +34,7 @@ import "../styles/footerPlayer.css";
 // ===================== MAIN COMPONENT =====================
 export default function FooterPlayer() {
 
-  const { current, playing, playSong, togglePlay, progress, duration, seek, toggleLoop, loop } =
+  const { current, playing, audioLoading, playSong, togglePlay, progress, duration, seek, toggleLoop, loop } =
     useAudioPlayer();
   const { queue, setQueue, reorderQueue, removeFromQueue, addNext } = useQueue();
 
@@ -46,6 +47,17 @@ export default function FooterPlayer() {
 
   const titleRef = useRef();
   const artistRef = useRef();
+  const firstPlayRef = useRef(true);
+
+  // ===================== AUTO-OPEN FULLSCREEN (MOBILE FIRST PLAY) =====================
+  useEffect(() => {
+    if (current && firstPlayRef.current) {
+      firstPlayRef.current = false;
+      if (window.innerWidth <= 768) {
+        setOpenFull(true);
+      }
+    }
+  }, [current]);
 
   const progressPercent = duration
     ? Math.min((progress / duration) * 100, 100)
@@ -278,7 +290,7 @@ export default function FooterPlayer() {
                 color: 'white', cursor: 'pointer', zIndex: 1,
               }}
             >
-              {playing ? <PauseIcon /> : <PlayArrowIcon />}
+              {audioLoading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : playing ? <PauseIcon /> : <PlayArrowIcon />}
             </Box>
           </Box>
 
@@ -324,7 +336,7 @@ export default function FooterPlayer() {
             </Box>
 
             <Box className="fp-play-btn" onClick={togglePlay}>
-              {playing ? <PauseIcon /> : <PlayArrowIcon />}
+              {audioLoading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : playing ? <PauseIcon /> : <PlayArrowIcon />}
             </Box>
 
             <Box className="fp-ctrl-btn" onClick={playNext} title="Next">
@@ -457,9 +469,9 @@ export default function FooterPlayer() {
                     onClick={togglePlay}
                     title={playing ? 'Pause' : 'Play'}
                   >
-                    {playing
-                      ? <PauseIcon sx={{ fontSize: '2rem' }} />
-                      : <PlayArrowIcon sx={{ fontSize: '2rem' }} />
+                    {audioLoading
+                      ? <CircularProgress size={32} sx={{ color: 'white' }} />
+                      : playing ? <PauseIcon sx={{ fontSize: '2rem' }} /> : <PlayArrowIcon sx={{ fontSize: '2rem' }} />
                     }
                   </button>
 
@@ -486,7 +498,7 @@ export default function FooterPlayer() {
                     <DownloadIcon className="fa-icon" />
                     <span>Download</span>
                   </button>
-                  <button className="fs-action-btn" onClick={() => navigator.clipboard?.writeText(`${location.origin}/song/${current.id}`)}>
+                  <button className="fs-action-btn" onClick={() => shareSong(current)}>
                     <ShareIcon className="fa-icon" />
                     <span>Share</span>
                   </button>

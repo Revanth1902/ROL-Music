@@ -4,6 +4,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { useQueue } from '../../contexts/QueueContext'
 import { useAudioPlayer } from '../../contexts/AudioPlayerContext'
 import { getSongById, searchSongs } from '../../api/apiService'
+import { shareSong } from '../../utils/share'
 
 // React Icons
 import { MdMoreVert } from 'react-icons/md'
@@ -137,7 +138,7 @@ export default function ThreeDotMenu({ song, songList = [] }) {
           </MenuItem>
         )}
 
-        <MenuItem onClick={() => { navigator.clipboard?.writeText(`${location.origin}/song/${song.id}`); close() }}>
+        <MenuItem onClick={() => { shareSong(song); close() }}>
           <MdShare className="tdm-icon" />
           Share
         </MenuItem>

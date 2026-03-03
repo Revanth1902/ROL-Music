@@ -68,21 +68,39 @@ function LangBlock({ langCode, data }) {
     return best?.link || best?.url || ''
   }
 
-  const trendingSongs = (data.trending?.songs || []).map(s => normalizeSong(s)).filter(Boolean)
-  const trendingAlbums = (data.trending?.albums || []).map(a => ({
-    id: cleanId(a.id),
-    title: decodeEntities(a.name || a.title || 'Unknown'),
-    cover: pickCover(a.image),
-    artist: Array.isArray(a.artists) ? a.artists.map(x => x.name).join(', ') : '',
-    year: a.releaseDate?.substring(0, 4) || a.year || '',
-  }))
-  const albums = (data.albums || []).map(a => ({
-    id: cleanId(a.id),
-    title: decodeEntities(a.name || a.title || 'Unknown'),
-    cover: pickCover(a.image),
-    artist: Array.isArray(a.artists) ? a.artists.map(x => x.name).join(', ') : '',
-    year: a.releaseDate?.substring(0, 4) || a.year || '',
-  }))
+  let trendingSongs = (data.trending?.songs || []).map(s => normalizeSong(s)).filter(Boolean)
+
+  const trendingAlbums = []
+    ; (data.trending?.albums || []).forEach(a => {
+      if (a.type === 'song') {
+        const norm = normalizeSong(a)
+        if (norm) trendingSongs.push(norm)
+      } else {
+        trendingAlbums.push({
+          id: cleanId(a.id),
+          title: decodeEntities(a.name || a.title || 'Unknown'),
+          cover: pickCover(a.image),
+          artist: Array.isArray(a.artists) ? a.artists.map(x => x.name).join(', ') : '',
+          year: a.releaseDate?.substring(0, 4) || a.year || '',
+        })
+      }
+    })
+
+  const albums = []
+    ; (data.albums || []).forEach(a => {
+      if (a.type === 'song') {
+        const norm = normalizeSong(a)
+        if (norm) trendingSongs.push(norm)
+      } else {
+        albums.push({
+          id: cleanId(a.id),
+          title: decodeEntities(a.name || a.title || 'Unknown'),
+          cover: pickCover(a.image),
+          artist: Array.isArray(a.artists) ? a.artists.map(x => x.name).join(', ') : '',
+          year: a.releaseDate?.substring(0, 4) || a.year || '',
+        })
+      }
+    })
   const playlists = (data.playlists || []).map(p => ({
     id: p.id,
     title: decodeEntities(p.title || p.name || 'Unknown'),

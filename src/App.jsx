@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/layouts/Sidebar'
 import FooterPlayer from './components/layouts/FooterPlayer'
@@ -13,6 +13,7 @@ import Settings from './pages/Settings'
 import AlbumDetail from './pages/AlbumDetail'
 import ArtistDetail from './pages/ArtistDetail'
 import PlaylistDetail from './pages/PlaylistDetail'
+import SongRedirect from './pages/SongRedirect'
 import { useLanguage } from './contexts/LanguageContext'
 import { Box, IconButton, AppBar, Toolbar, useMediaQuery } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -23,6 +24,28 @@ export default function App() {
   const { language } = useLanguage()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const isMobile = useMediaQuery('(max-width:768px)')
+
+  useEffect(() => {
+    // Disable right click
+    const handleContextMenu = (e) => e.preventDefault()
+    // Disable inspecting tools
+    const handleKeyDown = (e) => {
+      // F12
+      if (e.keyCode === 123) e.preventDefault()
+      // Ctrl+Shift+I or J or C
+      if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) e.preventDefault()
+      // Ctrl+U
+      if (e.ctrlKey && e.keyCode === 85) e.preventDefault()
+    }
+
+    document.addEventListener('contextmenu', handleContextMenu)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
 
   if (!language) return <LanguageSelect />
 
@@ -76,6 +99,7 @@ export default function App() {
           <Route path="/album/:id" element={<AlbumDetail />} />
           <Route path="/artist/:id" element={<ArtistDetail />} />
           <Route path="/playlist/:id" element={<PlaylistDetail />} />
+          <Route path="/song/:id" element={<SongRedirect />} />
 
           <Route path="*" element={
             <Box sx={{ padding: 6, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>

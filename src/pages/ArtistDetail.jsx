@@ -30,6 +30,16 @@ export default function ArtistDetail() {
     const [totalPages] = useState(10)
     const { playSong } = useAudioPlayer()
     const { addToQueue } = useQueue()
+    const [scrolled, setScrolled] = useState(false)
+
+    useEffect(() => {
+        const mc = document.querySelector('.main-content')
+        if (!mc) return
+        const handleScroll = () => setScrolled(mc.scrollTop > 50)
+        mc.addEventListener('scroll', handleScroll)
+        handleScroll()
+        return () => mc.removeEventListener('scroll', handleScroll)
+    }, [])
 
     // 1. Load artist profile
     useEffect(() => {
@@ -83,10 +93,9 @@ export default function ArtistDetail() {
     }, [id, loading])
 
     const playAll = () => {
-        const playable = songs.filter(s => s.src)
-        if (!playable.length) return
-        playSong(playable[0])
-        playable.slice(1).forEach(s => addToQueue(s))
+        if (!songs.length) return
+        playSong(songs[0])
+        songs.slice(1).forEach(s => addToQueue(s))
     }
 
     if (loading) return (
@@ -123,7 +132,7 @@ export default function ArtistDetail() {
             </button>
 
             {/* ── Hero ── */}
-            <div className="detail-hero detail-hero-artist">
+            <div className={`detail-hero detail-hero-artist ${scrolled ? 'scrolled' : ''}`}>
                 <img
                     src={artist.avatar}
                     alt={artist.name}
