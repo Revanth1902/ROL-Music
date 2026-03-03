@@ -21,6 +21,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { MdDragHandle } from 'react-icons/md';
 import rolLogo from '../../assets/rol-logo1.png';
 import SeekBar from "../ui/SeekBar"
+import WaveProgressBar from "../ui/WaveProgressBar";
 import { useAudioPlayer } from "../../contexts/AudioPlayerContext";
 import { useQueue } from "../../contexts/QueueContext";
 import { shareSong } from "../../utils/share";
@@ -412,173 +413,174 @@ export default function FooterPlayer() {
               </button>
             </div>
 
-            {!showQueue ? (
-              <>
-                {/* ── Album Art ── */}
-                <div className="fs-art-wrap">
-                  <img
-                    src={current.cover}
-                    className="fs-art"
-                    alt={current.title}
-                    onError={e => { e.target.src = `https://ui-avatars.com/api/?name=♪&background=1a1040&color=a78bfa&size=320` }}
-                  />
-                  {/* ROL watermark */}
-                  <img src={rolLogo} className="fs-art-logo" alt="ROL" aria-hidden />
-                </div>
+            <div className="fs-slider-container">
+              <div className={`fs-slider ${showQueue ? 'show-queue' : 'show-song'}`}>
 
-                {/* ── Song Info ── */}
-                <div className="fs-info">
-                  <div className="fs-info-text">
-                    <div className="fs-song-title">{current.title}</div>
-                    <div className="fs-song-artist">{current.artistName}</div>
-                    {current.album && <div className="fs-song-album">{current.album}</div>}
+                {/* ── VIEW: SONG ── */}
+                <div className="fs-view-song">
+                  {/* ── Album Art ── */}
+                  <div className="fs-art-wrap">
+                    <img
+                      src={current.cover}
+                      className="fs-art"
+                      alt={current.title}
+                      onError={e => { e.target.src = `https://ui-avatars.com/api/?name=♪&background=1a1040&color=a78bfa&size=320` }}
+                    />
+                    {/* ROL watermark */}
+                    <img src={rolLogo} className="fs-art-logo" alt="ROL" aria-hidden />
                   </div>
-                  <button
-                    className={`fs-heart-btn ${liked ? 'liked' : ''}`}
-                    onClick={() => setLiked(l => !l)}
-                    title={liked ? 'Liked' : 'Like'}
-                  >
-                    {liked
-                      ? <FavoriteIcon sx={{ fontSize: '1.5rem' }} />
-                      : <FavoriteBorderIcon sx={{ fontSize: '1.5rem' }} />
-                    }
-                  </button>
-                </div>
 
-                {/* ── Seekbar ── */}
-                <div className="fs-seek-wrap">
-                  <SeekBar progress={progress} duration={duration} onSeek={seek} />
-                </div>
-
-                {/* ── Controls ── */}
-                <div className="fs-controls">
-                  <button
-                    className={`fs-ctrl-btn ${loop ? 'active' : ''}`}
-                    onClick={toggleLoop}
-                    title="Repeat"
-                  >
-                    <RepeatIcon sx={{ fontSize: '1.4rem' }} />
-                  </button>
-
-                  <button className="fs-ctrl-btn" onClick={playPrevious} title="Previous">
-                    <SkipPreviousIcon sx={{ fontSize: '2rem' }} />
-                  </button>
-
-                  <button
-                    className="fs-play-btn"
-                    onClick={togglePlay}
-                    title={playing ? 'Pause' : 'Play'}
-                  >
-                    {audioLoading
-                      ? <CircularProgress size={32} sx={{ color: 'white' }} />
-                      : playing ? <PauseIcon sx={{ fontSize: '2rem' }} /> : <PlayArrowIcon sx={{ fontSize: '2rem' }} />
-                    }
-                  </button>
-
-                  <button className="fs-ctrl-btn" onClick={playNext} title="Next">
-                    <SkipNextIcon sx={{ fontSize: '2rem' }} />
-                  </button>
-
-                  <button
-                    className="fs-ctrl-btn"
-                    onClick={() => downloadSong(current)}
-                    title="Download"
-                  >
-                    <DownloadIcon sx={{ fontSize: '1.4rem' }} />
-                  </button>
-                </div>
-
-                {/* ── Actions ── */}
-                <div className="fs-actions">
-                  <button className="fs-action-btn" onClick={() => setShowQueue(true)}>
-                    <QueueMusicIcon className="fa-icon" />
-                    <span>Queue</span>
-                  </button>
-                  <button className="fs-action-btn" onClick={() => downloadSong(current)}>
-                    <DownloadIcon className="fa-icon" />
-                    <span>Download</span>
-                  </button>
-                  <button className="fs-action-btn" onClick={() => shareSong(current)}>
-                    <ShareIcon className="fa-icon" />
-                    <span>Share</span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              /* ── Queue Tab (draggable) ── */
-              <div className="fs-queue-strip">
-                <div className="fs-queue-header">Up Next — {queue.length} songs</div>
-                {queue.length === 0 ? (
-                  <div className="fs-queue-empty">
-                    <QueueMusicIcon sx={{ fontSize: '2.5rem', opacity: 0.2, mb: 1 }} />
-                    <p>Queue is empty.</p>
-                    <p>Add songs using the ⋮ menu on any song.</p>
+                  {/* ── Song Info ── */}
+                  <div className="fs-info">
+                    <div className="fs-info-text">
+                      <div className="fs-song-title">{current.title}</div>
+                      <div className="fs-song-artist">{current.artistName}</div>
+                      {current.album && <div className="fs-song-album">{current.album}</div>}
+                    </div>
+                    <button
+                      className={`fs-heart-btn ${liked ? 'liked' : ''}`}
+                      onClick={() => setLiked(l => !l)}
+                      title={liked ? 'Liked' : 'Like'}
+                    >
+                      {liked
+                        ? <FavoriteIcon sx={{ fontSize: '1.5rem' }} />
+                        : <FavoriteBorderIcon sx={{ fontSize: '1.5rem' }} />
+                      }
+                    </button>
                   </div>
-                ) : (
-                  <DragDropContext onDragEnd={onDragEnd}>
-                    <Droppable droppableId="fs-queue">
-                      {(provided) => (
-                        <div
-                          {...provided.droppableProps}
-                          ref={provided.innerRef}
-                          style={{ paddingBottom: 80 }}
-                        >
-                          {queue.map((track, i) => (
-                            <Draggable key={`${track.id}-${i}`} draggableId={`fs-q-${track.id}-${i}`} index={i}>
-                              {(drag, snapshot) => (
-                                <div
-                                  ref={drag.innerRef}
-                                  {...drag.draggableProps}
-                                  className={`fs-queue-item${snapshot.isDragging ? ' fs-queue-dragging' : ''}`}
-                                  onClick={() => { playSong(track); setQueue(queue.slice(i + 1)); }}
-                                >
-                                  {/* Drag handle */}
-                                  <div
-                                    {...drag.dragHandleProps}
-                                    className="fs-queue-drag-handle"
-                                    onClick={e => e.stopPropagation()}
-                                  >
-                                    <MdDragHandle />
-                                  </div>
 
-                                  <div className="fs-queue-thumb-wrap">
-                                    <img
-                                      src={track.cover}
-                                      className="fs-queue-thumb"
-                                      alt={track.title}
-                                      onError={e => e.target.style.display = 'none'}
-                                    />
-                                    <img src={rolLogo} className="img-rol-badge" alt="" aria-hidden />
-                                  </div>
+                  {/* ── Wave Seekbar ── */}
+                  <div className="fs-seek-wrap">
+                    <WaveProgressBar progress={progress} duration={duration} onSeek={seek} />
+                  </div>
 
-                                  <div className="fs-queue-info">
-                                    <div className="fs-queue-title">{track.title}</div>
-                                    <div className="fs-queue-artist">{track.artistName}</div>
-                                  </div>
+                  {/* ── Controls ── */}
+                  <div className="fs-controls">
+                    <button
+                      className={`fs-ctrl-btn ${loop ? 'active' : ''}`}
+                      onClick={toggleLoop}
+                      title="Repeat"
+                    >
+                      <RepeatIcon sx={{ fontSize: '1.4rem' }} />
+                    </button>
 
-                                  <button
-                                    className="fs-queue-remove"
-                                    onClick={e => { e.stopPropagation(); removeFromQueue(track.id); }}
-                                    title="Remove"
-                                  >
-                                    <CloseIcon sx={{ fontSize: '0.9rem' }} />
-                                  </button>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
-                )}
+                    <button className="fs-ctrl-btn" onClick={playPrevious} title="Previous">
+                      <SkipPreviousIcon sx={{ fontSize: '2rem' }} />
+                    </button>
+
+                    <button
+                      className="fs-play-btn"
+                      onClick={togglePlay}
+                      title={playing ? 'Pause' : 'Play'}
+                    >
+                      {audioLoading
+                        ? <div className="heart-pulse-loader"></div>
+                        : playing ? <PauseIcon sx={{ fontSize: '2rem' }} /> : <PlayArrowIcon sx={{ fontSize: '2rem' }} />
+                      }
+                    </button>
+
+                    <button className="fs-ctrl-btn" onClick={playNext} title="Next">
+                      <SkipNextIcon sx={{ fontSize: '2rem' }} />
+                    </button>
+
+                    <button
+                      className="fs-ctrl-btn"
+                      onClick={() => downloadSong(current)}
+                      title="Download"
+                    >
+                      <DownloadIcon sx={{ fontSize: '1.4rem' }} />
+                    </button>
+                  </div>
+
+                  {/* ── Actions ── */}
+                  <div className="fs-actions">
+                    <button className="fs-action-btn" onClick={() => setShowQueue(true)}>
+                      <QueueMusicIcon className="fa-icon" />
+                      <span>Queue</span>
+                    </button>
+                    <button className="fs-action-btn" onClick={() => shareSong(current)}>
+                      <ShareIcon className="fa-icon" />
+                      <span>Share</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── VIEW: QUEUE ── */}
+                <div className="fs-view-queue">
+                  <div className="fs-queue-strip">
+                    <div className="fs-queue-header">Up Next — {queue.length} songs</div>
+                    {queue.length === 0 ? (
+                      <div className="fs-queue-empty">
+                        <QueueMusicIcon sx={{ fontSize: '2.5rem', opacity: 0.2, mb: 1 }} />
+                        <p>Queue is empty.</p>
+                        <p>Add songs using the ⋮ menu on any song.</p>
+                      </div>
+                    ) : (
+                      <DragDropContext onDragEnd={onDragEnd}>
+                        <Droppable droppableId="fs-queue">
+                          {(provided) => (
+                            <div
+                              {...provided.droppableProps}
+                              ref={provided.innerRef}
+                              style={{ paddingBottom: 80 }}
+                            >
+                              {queue.map((track, i) => (
+                                <Draggable key={`${track.id}-${i}`} draggableId={`fs-q-${track.id}-${i}`} index={i}>
+                                  {(drag, snapshot) => (
+                                    <div
+                                      ref={drag.innerRef}
+                                      {...drag.draggableProps}
+                                      className={`fs-queue-item${snapshot.isDragging ? ' fs-queue-dragging' : ''}`}
+                                      onClick={() => { playSong(track); setQueue(queue.slice(i + 1)); }}
+                                    >
+                                      {/* Drag handle */}
+                                      <div
+                                        {...drag.dragHandleProps}
+                                        className="fs-queue-drag-handle"
+                                        onClick={e => e.stopPropagation()}
+                                      >
+                                        <MdDragHandle />
+                                      </div>
+
+                                      <div className="fs-queue-thumb-wrap">
+                                        <img
+                                          src={track.cover}
+                                          className="fs-queue-thumb"
+                                          alt={track.title}
+                                          onError={e => e.target.style.display = 'none'}
+                                        />
+                                        <img src={rolLogo} className="img-rol-badge" alt="" aria-hidden />
+                                      </div>
+
+                                      <div className="fs-queue-info">
+                                        <div className="fs-queue-title">{track.title}</div>
+                                        <div className="fs-queue-artist">{track.artistName}</div>
+                                      </div>
+
+                                      <button
+                                        className="fs-queue-remove"
+                                        onClick={e => { e.stopPropagation(); removeFromQueue(track.id); }}
+                                        title="Remove"
+                                      >
+                                        <CloseIcon sx={{ fontSize: '0.9rem' }} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
+                      </DragDropContext>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
-
 
       {/* DESKTOP QUEUE */}
       {showQueue && (
