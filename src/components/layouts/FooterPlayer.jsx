@@ -27,7 +27,8 @@ import { useQueue } from "../../contexts/QueueContext";
 import { shareSong } from "../../utils/share";
 import { getSongById, searchSongs } from "../../api/apiService";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import * as ID3Writer from 'browser-id3-writer';
+import * as browserId3Writer from 'browser-id3-writer';
+const ID3Writer = browserId3Writer.default || browserId3Writer;
 
 import "../styles/footerPlayer.css";
 
@@ -152,19 +153,29 @@ export default function FooterPlayer() {
 
       setDlState(d => ({ ...d, progress: 90 }));
 
-      const writer = new ID3Writer.default(audioBuffer);
+      const writer = new ID3Writer(audioBuffer);
       writer
         .setFrame('TIT2', cleanTitle)
-        .setFrame('TPE1', [cleanArtist])
-        .setFrame('TALB', sanitize(song.album) || 'ROL Music');
+        .setFrame('TPE1', [cleanArtist]) // Artist
+        .setFrame('TCOM', [cleanArtist]) // Composer
+        .setFrame('TALB', sanitize(song.album) || 'ROL Music') // Album
+        .setFrame('TPUB', 'ROL Music'); // Publisher
+
       if (song.year) writer.setFrame('TYER', String(song.year));
       if (song.language) writer.setFrame('TLAN', song.language);
 
       if (song.cover) {
         try {
           const coverBuf = await fetch(song.cover).then(r => r.arrayBuffer());
-          writer.setFrame('APIC', { type: 3, data: coverBuf, description: 'Cover' });
-        } catch { }
+          writer.setFrame('APIC', {
+            type: 3, // 3 = Front Cover
+            data: coverBuf,
+            description: 'Cover',
+            useUnicodeEncoding: false
+          });
+        } catch (e) {
+          console.warn("[download] Failed to fetch cover image:", e);
+        }
       }
 
       writer.addTag();
