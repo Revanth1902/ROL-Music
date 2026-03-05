@@ -27,8 +27,7 @@ import { useQueue } from "../../contexts/QueueContext";
 import { shareSong } from "../../utils/share";
 import { getSongById, searchSongs } from "../../api/apiService";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import * as browserId3Writer from 'browser-id3-writer';
-const ID3Writer = browserId3Writer.default || browserId3Writer;
+import MP3Tag from 'mp3tag.js';
 
 import "../styles/footerPlayer.css";
 
@@ -170,30 +169,28 @@ export default function FooterPlayer() {
 
       setDlState((d) => ({ ...d, progress: 85 }));
 
-      // use ID3Writer imported as previously handled
-      const writer = new ID3Writer(audioBuffer);
+      // Use mp3tag.js for broader compatibility
+      const mp3tag = new MP3Tag(audioBuffer.buffer);
+      mp3tag.read();
+
+      // Initialize if v2 tags object is missing
+      if (!mp3tag.tags.v2) mp3tag.tags.v2 = {};
 
       /* -------------------- BASIC METADATA -------------------- */
-      writer
-        .setFrame("TIT2", cleanTitle) // Title
-        .setFrame("TPE1", [cleanArtist]) // Artist
-        .setFrame("TALB", sanitize(song.album) || "ROL Music") // Album
-        .setFrame("TCON", song.genre || "Music") // Genre
-        .setFrame("TPUB", "ROL Music") // Publisher
-        .setFrame("TCOP", "ROL Music") // Copyright
-        .setFrame("TENC", "ROL Music") // Encoded by
-        .setFrame("TCOM", [song.composer || cleanArtist]) // Composer
-        .setFrame("COMM", {
-          description: "Comment",
-          text: "Downloaded from ROL Music",
-        });
+      mp3tag.tags.v2.TIT2 = cleanTitle; // Title
+      mp3tag.tags.v2.TPE1 = cleanArtist; // Artist
+      mp3tag.tags.v2.TALB = sanitize(song.album) || "ROL Music"; // Album
+      mp3tag.tags.v2.TCON = song.genre || "Music"; // Genre
+      mp3tag.tags.v2.TPUB = "ROL Music"; // Publisher
+      mp3tag.tags.v2.TCOP = "ROL Music"; // Copyright
+      mp3tag.tags.v2.TENC = "ROL Music"; // Encoded by
+      mp3tag.tags.v2.TCOM = song.composer || cleanArtist; // Composer
 
       if (song.year) {
-        writer.setFrame("TYER", String(song.year));
+        mp3tag.tags.v2.TYER = String(song.year);
       }
-
       if (song.language) {
-        writer.setFrame("TLAN", song.language);
+        mp3tag.tags.v2.TLAN = song.language;
       }
 
       /* -------------------- COVER IMAGE -------------------- */
@@ -203,22 +200,24 @@ export default function FooterPlayer() {
             r.arrayBuffer()
           );
 
-          writer.setFrame("APIC", {
-            type: 3,
-            data: coverBuffer,
-            description: "Cover",
-          });
+          mp3tag.tags.v2.APIC = [
+            {
+              format: "image/jpeg",
+              type: 3,
+              description: "Cover",
+              data: new Uint8Array(coverBuffer), // pass Uint8Array
+            },
+          ];
         } catch (e) {
-          console.log("Cover image failed");
+          console.log("Cover image failed:", e);
         }
       }
 
       setDlState((d) => ({ ...d, progress: 95 }));
 
-      writer.addTag();
+      mp3tag.save();
 
-      const taggedBlob = writer.getBlob();
-
+      const taggedBlob = new window.Blob([mp3tag.buffer], { type: "audio/mpeg" });
       const url = URL.createObjectURL(taggedBlob);
 
       const a = document.createElement("a");
