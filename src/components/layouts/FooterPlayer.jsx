@@ -130,80 +130,131 @@ export default function FooterPlayer() {
   // ===================== DOWNLOAD WITH METADATA + PROGRESS =====================
   const downloadSong = async (song) => {
     if (!song?.src) return;
+
     const cleanTitle = sanitize(song.title);
     const cleanArtist = sanitize(song.artistName);
     const filename = `${cleanTitle} - ${cleanArtist}.mp3`;
+
     setDlState({ name: cleanTitle, progress: 0, done: false });
+
     try {
       const audioRes = await fetch(song.src);
-      const total = Number(audioRes.headers.get('Content-Length')) || 0;
+      const total = Number(audioRes.headers.get("Content-Length")) || 0;
       const reader = audioRes.body.getReader();
+
       const chunks = [];
       let received = 0;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
         chunks.push(value);
         received += value.length;
-        if (total > 0) setDlState(d => ({ ...d, progress: Math.round((received / total) * 85) }));
-      }
-      const audioBuffer = new Uint8Array(received);
-      let pos = 0;
-      for (const chunk of chunks) { audioBuffer.set(chunk, pos); pos += chunk.length; }
 
-      setDlState(d => ({ ...d, progress: 90 }));
-
-      const writer = new ID3Writer(audioBuffer);
-      writer
-        .setFrame('TIT2', cleanTitle)
-        .setFrame('TPE1', [cleanArtist]) // Artist
-        .setFrame('TCOM', [cleanArtist]) // Composer
-        .setFrame('TALB', sanitize(song.album) || 'ROL Music') // Album
-        .setFrame('TPUB', 'ROL Music'); // Publisher
-
-      if (song.year) writer.setFrame('TYER', String(song.year));
-      if (song.language) writer.setFrame('TLAN', song.language);
-
-      if (song.cover) {
-        try {
-          const coverBuf = await fetch(song.cover).then(r => r.arrayBuffer());
-          writer.setFrame('APIC', {
-            type: 3, // 3 = Front Cover
-            data: coverBuf,
-            description: 'Cover',
-            useUnicodeEncoding: false
-          });
-        } catch (e) {
-          console.warn("[download] Failed to fetch cover image:", e);
+        if (total > 0) {
+          setDlState((d) => ({
+            ...d,
+            progress: Math.round((received / total) * 80),
+          }));
         }
       }
 
-      writer.addTag();
-      setDlState(d => ({ ...d, progress: 98 }));
+      const audioBuffer = new Uint8Array(received);
+      let pos = 0;
 
-      const blob = writer.getBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      for (const chunk of chunks) {
+        audioBuffer.set(chunk, pos);
+        pos += chunk.length;
+      }
+
+      setDlState((d) => ({ ...d, progress: 85 }));
+
+      // use ID3Writer imported as previously handled
+      const writer = new ID3Writer(audioBuffer);
+
+      /* -------------------- BASIC METADATA -------------------- */
+      writer
+        .setFrame("TIT2", cleanTitle) // Title
+        .setFrame("TPE1", [cleanArtist]) // Artist
+        .setFrame("TALB", sanitize(song.album) || "ROL Music") // Album
+        .setFrame("TCON", song.genre || "Music") // Genre
+        .setFrame("TPUB", "ROL Music") // Publisher
+        .setFrame("TCOP", "ROL Music") // Copyright
+        .setFrame("TENC", "ROL Music") // Encoded by
+        .setFrame("TCOM", [song.composer || cleanArtist]) // Composer
+        .setFrame("COMM", {
+          description: "Comment",
+          text: "Downloaded from ROL Music",
+        });
+
+      if (song.year) {
+        writer.setFrame("TYER", String(song.year));
+      }
+
+      if (song.language) {
+        writer.setFrame("TLAN", song.language);
+      }
+
+      /* -------------------- COVER IMAGE -------------------- */
+      if (song.cover) {
+        try {
+          const coverBuffer = await fetch(song.cover).then((r) =>
+            r.arrayBuffer()
+          );
+
+          writer.setFrame("APIC", {
+            type: 3,
+            data: coverBuffer,
+            description: "Cover",
+          });
+        } catch (e) {
+          console.log("Cover image failed");
+        }
+      }
+
+      setDlState((d) => ({ ...d, progress: 95 }));
+
+      writer.addTag();
+
+      const taggedBlob = writer.getBlob();
+
+      const url = URL.createObjectURL(taggedBlob);
+
+      const a = document.createElement("a");
       a.href = url;
       a.download = filename;
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
       setTimeout(() => URL.revokeObjectURL(url), 2000);
 
-      setDlState(d => ({ ...d, progress: 100, done: true }));
+      setDlState((d) => ({ ...d, progress: 100, done: true }));
       setTimeout(() => setDlState(null), 3500);
+
     } catch (err) {
-      console.error('[download]', err);
+      console.error("[download]", err);
+
       try {
-        const buf = await fetch(song.src).then(r => r.arrayBuffer());
-        const blob = new Blob([buf], { type: 'audio/mpeg' });
+        const buf = await fetch(song.src).then((r) => r.arrayBuffer());
+
+        const blob = new Blob([buf], { type: "audio/mpeg" });
+
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
         setTimeout(() => URL.revokeObjectURL(url), 2000);
       } catch { }
+
       setDlState(null);
     }
   };
