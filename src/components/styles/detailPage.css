@@ -174,16 +174,25 @@
 .detail-hero.scrolled .detail-sub,
 .detail-hero.scrolled .detail-year,
 .detail-hero.scrolled .detail-type-badge,
-.detail-hero.scrolled .detail-count {
-    display: none;
+.detail-hero.scrolled .detail-count,
+.detail-hero.scrolled .detail-meta>div {
+    display: none !important;
 }
 
-.detail-hero.scrolled .detail-meta>div {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 0 !important;
-    /* override any margin */
+@media (max-width: 768px) {
+    .detail-hero.scrolled {
+        padding: 8px 16px;
+        gap: 12px;
+    }
+
+    .detail-hero.scrolled .detail-cover {
+        width: 48px;
+        height: 48px;
+    }
+
+    .detail-hero.scrolled .detail-title {
+        font-size: 1.1rem;
+    }
 }
 
 /* Play All */

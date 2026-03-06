@@ -18,6 +18,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import LyricsIcon from "@mui/icons-material/Lyrics";
 import { MdDragHandle } from 'react-icons/md';
 import rolLogo from '../../assets/rol-logo1.png';
 import SeekBar from "../ui/SeekBar"
@@ -44,7 +45,11 @@ export default function FooterPlayer() {
   const [selectedId, setSelectedId] = useState(null);
   const [showQueue, setShowQueue] = useState(false);
   const [dlState, setDlState] = useState(null); // { name, progress 0-100, done }
-  const [liked, setLiked] = useState(false);
+  const [lyricsData, setLyricsData] = useState(null);
+  const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [lyricsError, setLyricsError] = useState(false);
+  const [showDesktopLyrics, setShowDesktopLyrics] = useState(false);
+  const [isLyricsFlipped, setIsLyricsFlipped] = useState(false);
 
   const titleRef = useRef();
   const artistRef = useRef();
@@ -96,8 +101,47 @@ export default function FooterPlayer() {
     }
   }, [current, playing, queue]);
 
-  // Reset liked when song changes
-  useEffect(() => { setLiked(false); }, [current?.id]);
+  // Fetch Lyrics
+  useEffect(() => {
+    if (!current) return;
+    setLyricsData(null);
+    setLyricsError(false);
+    setLyricsLoading(true);
+
+    let cleanTitle = current.title || "";
+    // Remove " (From ...)" or similar brackets that might ruin lyrics matching
+    cleanTitle = cleanTitle.replace(/\s*\(From.*?\)\s*/i, "").trim();
+
+    const q = encodeURIComponent(cleanTitle);
+    fetch(`https://lrclib.net/api/search?q=${q}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          const track = data[0];
+          let synced = null;
+          if (track.syncedLyrics) {
+            synced = [];
+            track.syncedLyrics.split('\n').forEach(line => {
+              const m = line.match(/\[(\d+):(\d+\.\d+)\](.*)/);
+              if (m) {
+                synced.push({
+                  time: parseInt(m[1], 10) * 60 + parseFloat(m[2]),
+                  text: m[3].trim()
+                });
+              }
+            });
+          }
+          setLyricsData({ plain: track.plainLyrics, synced });
+        } else {
+          setLyricsError(true);
+        }
+      })
+      .catch((e) => {
+        console.error("Lyrics Error:", e);
+        setLyricsError(true);
+      })
+      .finally(() => setLyricsLoading(false));
+  }, [current?.title]);
 
   // ===================== MARQUEE =====================
   useEffect(() => {
@@ -421,13 +465,21 @@ export default function FooterPlayer() {
         <Box className="footer-right">
           <Typography className="queue-count">{queue.length} in queue</Typography>
 
+          <Box
+            className={`fp-ctrl-btn ${showDesktopLyrics ? "fp-ctrl-active" : ""}`}
+            onClick={() => { setShowDesktopLyrics(!showDesktopLyrics); setShowQueue(false); }}
+            title="Lyrics"
+          >
+            <LyricsIcon fontSize="small" />
+          </Box>
+
           <Box className="fp-ctrl-btn" onClick={() => downloadSong(current)} title="Download">
             <DownloadIcon fontSize="small" />
           </Box>
 
           <Box
             className={`fp-ctrl-btn ${showQueue ? 'fp-ctrl-active' : ''}`}
-            onClick={() => setShowQueue(prev => !prev)}
+            onClick={() => { setShowQueue(prev => !prev); setShowDesktopLyrics(false); }}
             title="Queue"
           >
             <QueueMusicIcon fontSize="small" />
@@ -462,7 +514,7 @@ export default function FooterPlayer() {
             <div className="fs-tabs">
               <button
                 className={`fs-tab ${!showQueue ? 'active' : ''}`}
-                onClick={() => setShowQueue(false)}
+                onClick={() => { setShowQueue(false); setIsLyricsFlipped(false); }}
               >
                 Song
               </button>
@@ -479,16 +531,47 @@ export default function FooterPlayer() {
 
                 {/* ── VIEW: SONG ── */}
                 <div className="fs-view-song">
-                  {/* ── Album Art ── */}
-                  <div className="fs-art-wrap">
-                    <img
-                      src={current.cover}
-                      className="fs-art"
-                      alt={current.title}
-                      onError={e => { e.target.src = `https://ui-avatars.com/api/?name=♪&background=1a1040&color=a78bfa&size=320` }}
-                    />
-                    {/* ROL watermark */}
-                    <img src={rolLogo} className="fs-art-logo" alt="ROL" aria-hidden />
+                  {/* ── Album Art (Flip Container) ── */}
+                  <div className={`fs-art-flip-container ${isLyricsFlipped ? "flipped" : ""}`}>
+                    <div className="fs-art-flipper">
+                      {/* Front: Image */}
+                      <div className="fs-art-front">
+                        <div className="fs-art-wrap">
+                          <img
+                            src={current.cover}
+                            className="fs-art"
+                            alt={current.title}
+                            onError={e => { e.target.src = `https://ui-avatars.com/api/?name=♪&background=1a1040&color=a78bfa&size=320` }}
+                          />
+                          {/* ROL watermark */}
+                          <img src={rolLogo} className="fs-art-logo" alt="ROL" aria-hidden />
+                        </div>
+                      </div>
+
+                      {/* Back: Lyrics */}
+                      <div className="fs-art-back">
+                        <div className="mobile-lyrics-container">
+                          {lyricsLoading && <div className="lyrics-loader"><div className="heart-pulse-loader" style={{ margin: '0 auto' }}></div><p style={{ marginTop: '10px', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>Fetching lyrics...</p></div>}
+                          {lyricsError && <div className="lyrics-error" style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', fontSize: '0.9rem', padding: '20px 0' }}>No lyrics available for this song</div>}
+                          {lyricsData?.synced ? (
+                            <div className="synced-lyrics-mobile">
+                              {lyricsData.synced.map((lrc, i) => {
+                                const isActive = progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time);
+                                return (
+                                  <p key={i} className={`m-lrc-line ${isActive ? "active" : ""}`}>
+                                    {lrc.text || <br />}
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          ) : lyricsData?.plain ? (
+                            <div className="m-plain-lyrics" style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', textAlign: 'center', paddingBottom: '40px' }}>{lyricsData.plain}</div>
+                          ) : (
+                            !lyricsLoading && !lyricsError && <div className="m-plain-lyrics" style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: '40px' }}>Lyrics not found</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* ── Song Info ── */}
@@ -499,14 +582,11 @@ export default function FooterPlayer() {
                       {current.album && <div className="fs-song-album">{current.album}</div>}
                     </div>
                     <button
-                      className={`fs-heart-btn ${liked ? 'liked' : ''}`}
-                      onClick={() => setLiked(l => !l)}
-                      title={liked ? 'Liked' : 'Like'}
+                      className={`fs-lyrics-btn ${isLyricsFlipped ? 'active' : ''}`}
+                      onClick={() => setIsLyricsFlipped(l => !l)}
+                      title={isLyricsFlipped ? 'Back to Cover' : 'Show Lyrics'}
                     >
-                      {liked
-                        ? <FavoriteIcon sx={{ fontSize: '1.5rem' }} />
-                        : <FavoriteBorderIcon sx={{ fontSize: '1.5rem' }} />
-                      }
+                      <LyricsIcon sx={{ fontSize: '1.5rem' }} />
                     </button>
                   </div>
 
@@ -641,6 +721,31 @@ export default function FooterPlayer() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* DESKTOP LYRICS */}
+      {showDesktopLyrics && (
+        <Box className="desktop-lyrics">
+          <h4>Lyrics — {current.title}</h4>
+          <Box className="lyrics-content">
+            {lyricsLoading && <div className="lyrics-loader"><div className="heart-pulse-loader" style={{ margin: '20px auto' }}></div><p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>Fetching lyrics...</p></div>}
+            {lyricsError && <div className="lyrics-error" style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', marginTop: '20px' }}>No lyrics available for this song</div>}
+            {lyricsData?.synced ? (
+              <div className="synced-lyrics-desktop">
+                {lyricsData.synced.map((lrc, i) => {
+                  const isActive = progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time);
+                  return (
+                    <p key={i} className={`lrc-line ${isActive ? "active" : ""}`}>
+                      {lrc.text || <br />}
+                    </p>
+                  );
+                })}
+              </div>
+            ) : lyricsData?.plain ? (
+              <div className="plain-lyrics" style={{ whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>{lyricsData.plain}</div>
+            ) : null}
+          </Box>
+        </Box>
       )}
 
       {/* DESKTOP QUEUE */}
