@@ -52,10 +52,12 @@
     top: 55px;
     /* mobile topbar offset */
     z-index: 50;
-    transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: background-color 0.25s ease, padding 0.25s ease, margin 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     background: transparent;
     padding: 10px 0;
     margin-top: -10px;
+    transform: translateZ(0);
+    will-change: padding, margin, background-color, box-shadow;
 }
 
 @media (min-width: 769px) {
@@ -96,7 +98,9 @@
     flex-shrink: 0;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
     background: rgba(255, 255, 255, 0.06);
-    transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: width 0.25s ease, height 0.25s ease, border-radius 0.25s ease, box-shadow 0.25s ease;
+    transform: translateZ(0);
+    will-change: width, height, border-radius;
 }
 
 .detail-cover-circle {
@@ -117,7 +121,8 @@
     flex-direction: column;
     gap: 6px;
     min-width: 0;
-    transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: gap 0.25s ease, max-height 0.25s ease;
+    transform: translateZ(0);
 }
 
 .detail-hero.scrolled .detail-meta {
@@ -141,7 +146,8 @@
     color: #f0f4f8;
     margin: 0;
     line-height: 1.15;
-    transition: font-size 0.35s ease;
+    transition: font-size 0.25s ease;
+    transform: translateZ(0);
 }
 
 .detail-hero.scrolled .detail-title {

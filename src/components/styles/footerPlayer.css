@@ -56,6 +56,7 @@
 .marquee {
   display: inline-block;
   transform: translateX(0);
+  will-change: transform;
 }
 
 @keyframes marquee-scroll {
@@ -368,6 +369,7 @@
       rgba(6, 8, 20, 0.55) 0%,
       rgba(6, 8, 20, 0.72) 50%,
       rgba(4, 6, 16, 0.96) 100%);
+  transform: translateZ(0);
 }
 
 /* ── Content above background ── */
@@ -378,6 +380,8 @@
   flex-direction: column;
   height: 100%;
   padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+  isolation: isolate;
+  /* Create new stacking context and isolate repaints */
 }
 
 /* ── Top bar: down-chevron + title ── */
@@ -478,6 +482,9 @@
 .fs-view-song {
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  will-change: scroll-position;
 }
 
 .fs-view-queue {
@@ -936,6 +943,9 @@
   padding: 0 20px 80px;
   min-height: 0;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  will-change: scroll-position;
 }
 
 .fs-queue-strip::-webkit-scrollbar {
@@ -959,6 +969,8 @@
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s;
+  transform: translateZ(0);
+  /* Hardware accelerate list items to stop scroll lag */
 }
 
 .fs-queue-item:hover {
@@ -1361,6 +1373,8 @@
   text-align: center;
   overflow-y: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
 }
 
 .mobile-lyrics-container::-webkit-scrollbar {

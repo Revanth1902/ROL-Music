@@ -154,7 +154,7 @@ export default function FooterPlayer() {
         const distance = el.scrollWidth - parent.clientWidth;
         const dur = Math.max(3, distance / 40);
         el.style.setProperty('--scroll-distance', `-${distance}px`);
-        el.style.animation = `marquee-scroll ${dur}s linear infinite`;
+        el.style.animation = `marquee-scroll ${dur}s linear infinite alternate`;
       } else {
         el.style.animation = "none";
         el.style.transform = "translateX(0)";

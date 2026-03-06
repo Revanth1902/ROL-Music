@@ -35,8 +35,18 @@ export default function ArtistDetail() {
     useEffect(() => {
         const mc = document.querySelector('.main-content')
         if (!mc) return
-        const handleScroll = () => setScrolled(mc.scrollTop > 50)
-        mc.addEventListener('scroll', handleScroll)
+
+        let ticking = false;
+        const handleScroll = () => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    setScrolled(mc.scrollTop > 50)
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }
+        mc.addEventListener('scroll', handleScroll, { passive: true })
         handleScroll()
         return () => mc.removeEventListener('scroll', handleScroll)
     }, [])
