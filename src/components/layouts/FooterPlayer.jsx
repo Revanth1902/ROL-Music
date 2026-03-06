@@ -324,28 +324,6 @@ export default function FooterPlayer() {
 
   const selectedSong = queue.find(s => s.id === selectedId);
 
-  // ===================== ACTIVE LYRICS =====================
-  const activeLyricIndex = lyricsData?.synced
-    ? lyricsData.synced.findIndex((lrc, i) => progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time))
-    : -1;
-
-  useEffect(() => {
-    if (activeLyricIndex >= 0) {
-      if (isLyricsFlipped) {
-        const activeMobile = document.getElementById(`mobile-lrc-${activeLyricIndex}`);
-        if (activeMobile) {
-          activeMobile.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }
-      if (showDesktopLyrics) {
-        const activeDesktop = document.getElementById(`desktop-lrc-${activeLyricIndex}`);
-        if (activeDesktop) {
-          activeDesktop.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }
-    }
-  }, [activeLyricIndex, isLyricsFlipped, showDesktopLyrics]);
-
   // ===================== UI =====================
   return (
     <>
@@ -578,9 +556,9 @@ export default function FooterPlayer() {
                           {lyricsData?.synced ? (
                             <div className="synced-lyrics-mobile">
                               {lyricsData.synced.map((lrc, i) => {
-                                const isActive = i === activeLyricIndex;
+                                const isActive = progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time);
                                 return (
-                                  <p key={i} id={`mobile-lrc-${i}`} className={`m-lrc-line ${isActive ? "active" : ""}`}>
+                                  <p key={i} className={`m-lrc-line ${isActive ? "active" : ""}`}>
                                     {lrc.text || <br />}
                                   </p>
                                 );
@@ -755,9 +733,9 @@ export default function FooterPlayer() {
             {lyricsData?.synced ? (
               <div className="synced-lyrics-desktop">
                 {lyricsData.synced.map((lrc, i) => {
-                  const isActive = i === activeLyricIndex;
+                  const isActive = progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time);
                   return (
-                    <p key={i} id={`desktop-lrc-${i}`} className={`lrc-line ${isActive ? "active" : ""}`}>
+                    <p key={i} className={`lrc-line ${isActive ? "active" : ""}`}>
                       {lrc.text || <br />}
                     </p>
                   );
