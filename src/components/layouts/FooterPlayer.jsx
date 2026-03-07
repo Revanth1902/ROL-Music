@@ -117,7 +117,39 @@ export default function FooterPlayer() {
       .then(r => r.json())
       .then(data => {
         if (data && data.length > 0) {
-          const track = data[0];
+          // Find the best match
+          const searchTitle = cleanTitle.toLowerCase();
+          const searchArtist = (current.artistName || "").toLowerCase();
+          
+          let track = data[0];
+          let bestScore = -1;
+
+          for (const item of data) {
+            let score = 0;
+            const itemTitle = (item.trackName || item.name || "").toLowerCase();
+            const itemArtist = (item.artistName || "").toLowerCase();
+
+            // Title match
+            if (itemTitle === searchTitle) score += 20;
+            else if (itemTitle.includes(searchTitle) || searchTitle.includes(itemTitle)) score += 10;
+            else score -= 10; // penalty for wrong title
+
+            // Artist match
+            if (searchArtist && (itemArtist.includes(searchArtist) || searchArtist.includes(itemArtist) || itemArtist === searchArtist)) {
+              score += 20;
+            }
+
+            // Prefer synced lyrics
+            if (item.syncedLyrics) {
+              score += 5;
+            }
+
+            if (score > bestScore) {
+              bestScore = score;
+              track = item;
+            }
+          }
+
           let synced = null;
           if (track.syncedLyrics) {
             synced = [];
