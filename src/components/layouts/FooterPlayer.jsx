@@ -54,6 +54,22 @@ export default function FooterPlayer() {
   const titleRef = useRef();
   const artistRef = useRef();
   const firstPlayRef = useRef(true);
+  
+  const activeLyricRef = useRef(null);
+  const desktopActiveLyricRef = useRef(null);
+
+  // Auto-scroll active lyrics
+  useEffect(() => {
+    if (activeLyricRef.current && isLyricsFlipped) {
+      activeLyricRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [progress, isLyricsFlipped]);
+
+  useEffect(() => {
+    if (desktopActiveLyricRef.current && showDesktopLyrics) {
+      desktopActiveLyricRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [progress, showDesktopLyrics]);
 
   // ===================== AUTO-OPEN FULLSCREEN (MOBILE FIRST PLAY) =====================
   useEffect(() => {
@@ -590,7 +606,11 @@ export default function FooterPlayer() {
                               {lyricsData.synced.map((lrc, i) => {
                                 const isActive = progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time);
                                 return (
-                                  <p key={i} className={`m-lrc-line ${isActive ? "active" : ""}`}>
+                                  <p 
+                                    key={i} 
+                                    className={`m-lrc-line ${isActive ? "active" : ""}`}
+                                    ref={isActive ? activeLyricRef : null}
+                                  >
                                     {lrc.text || <br />}
                                   </p>
                                 );
@@ -767,7 +787,11 @@ export default function FooterPlayer() {
                 {lyricsData.synced.map((lrc, i) => {
                   const isActive = progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time);
                   return (
-                    <p key={i} className={`lrc-line ${isActive ? "active" : ""}`}>
+                    <p 
+                      key={i} 
+                      className={`lrc-line ${isActive ? "active" : ""}`}
+                      ref={isActive ? desktopActiveLyricRef : null}
+                    >
                       {lrc.text || <br />}
                     </p>
                   );

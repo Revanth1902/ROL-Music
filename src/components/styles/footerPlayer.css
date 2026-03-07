@@ -1355,13 +1355,10 @@
 }
 
 .synced-lyrics-desktop .lrc-line.active {
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
-  text-shadow: 0 2px 8px rgba(108, 99, 255, 0.5);
-  transform: scale(1.02);
-  transform-origin: left;
-}
+          color: #fff;
+          font-weight: 700;
+          text-shadow: 0 2px 8px rgba(108, 99, 255, 0.5);
+        }
 
 /* Mobile Lyrics Container - Fits in Flip Back Face */
 .mobile-lyrics-container {
@@ -1398,9 +1395,7 @@
 }
 
 .synced-lyrics-mobile .m-lrc-line.active {
-  color: #a78bfa;
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-shadow: 0 0 16px rgba(167, 139, 250, 0.4);
-  transform: scale(1.05);
-}
+          color: #a78bfa;
+          font-weight: 700;
+          text-shadow: 0 0 16px rgba(167, 139, 250, 0.4);
+        }
