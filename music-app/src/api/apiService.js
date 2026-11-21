@@ -11,8 +11,8 @@
  */
 
 const SONG_BASE = 'https://jiosavvan.vercel.app';
-const BACKEND_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://rolmusicbackend.onrender.com/api').replace(/\/+$/, '');
-const SEARCH_BASE = 'https://saavn.sumit.co/api' || BACKEND_BASE;
+const MUSIC_CATALOG_BASE = 'https://rol-backend.onrender.com/api';
+const SEARCH_BASE = 'https://saavn.sumit.co/api';
 
 // ── HTML entity decoder ────────────────────────────────
 const htmlEntities = {
@@ -69,7 +69,7 @@ async function backendFetch(path) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3500); // Fail fast if Render backend is sleeping
     try {
-        const res = await fetch(`${BACKEND_BASE}${path}`, { signal: controller.signal });
+        const res = await fetch(`${MUSIC_CATALOG_BASE}${path}`, { signal: controller.signal });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
@@ -310,7 +310,24 @@ export async function getAlbumById(id) {
 export async function getArtistById(artistId) {
     if (!artistId) return null;
     const data = await backendFetch(`/artists/${artistId}`);
-    return normalizeArtist(data);
+    if (data) {
+        const artist = normalizeArtist(data);
+        if (artist?.id) return artist;
+    }
+
+    // Fallback: query JioSaavn directly
+    try {
+        const res = await fetch(`${SONG_BASE}/artists?id=${encodeURIComponent(artistId)}`);
+        if (res.ok) {
+            const json = await res.json();
+            const raw = json?.data ?? json;
+            if (raw?.id) return normalizeArtist(raw);
+        }
+    } catch (err) {
+        console.warn('[getArtistById fallback error]', err.message);
+    }
+
+    return null;
 }
 
 // GET https://rol-backend.onrender.com/api/artists/{artistId}/songs?page={page}
@@ -318,10 +335,26 @@ export async function getArtistById(artistId) {
 export async function getArtistSongs(artistId, page = 1) {
     if (!artistId) return [];
     const data = await backendFetch(`/artists/${artistId}/songs?page=${page}`);
-    if (!data) return [];
-    // data is { total, songs: [...] }
-    const songs = data.songs || data.results || (Array.isArray(data) ? data : []);
-    return songs.map(normalizeSong).filter(Boolean);
+    if (data) {
+        const songs = data.songs || data.results || (Array.isArray(data) ? data : []);
+        const normalized = songs.map(normalizeSong).filter(Boolean);
+        if (normalized.length > 0) return normalized;
+    }
+
+    // Fallback: query JioSaavn directly
+    try {
+        const res = await fetch(`${SONG_BASE}/artists/${encodeURIComponent(artistId)}/songs?page=${page}`);
+        if (res.ok) {
+            const json = await res.json();
+            const raw = json?.data ?? json;
+            const songs = raw?.songs || raw?.results || (Array.isArray(raw) ? raw : []);
+            return songs.map(normalizeSong).filter(Boolean);
+        }
+    } catch (err) {
+        console.warn('[getArtistSongs fallback error]', err.message);
+    }
+
+    return [];
 }
 
 export async function getAllArtistSongs(artistId, maxPages = 10) {
@@ -339,7 +372,24 @@ export async function getAllArtistSongs(artistId, maxPages = 10) {
 export async function getPlaylistById(id, page = 1) {
     if (!id) return null;
     const data = await backendFetch(`/playlists?id=${id}&page=${page}`);
-    return normalizePlaylist(data);
+    if (data) {
+        const pl = normalizePlaylist(data);
+        if (pl?.id) return pl;
+    }
+
+    // Fallback: query JioSaavn directly
+    try {
+        const res = await fetch(`${SONG_BASE}/playlists?id=${encodeURIComponent(id)}&page=${page}`);
+        if (res.ok) {
+            const json = await res.json();
+            const raw = json?.data ?? json;
+            if (raw?.id) return normalizePlaylist(raw);
+        }
+    } catch (err) {
+        console.warn('[getPlaylistById fallback error]', err.message);
+    }
+
+    return null;
 }
 
 export async function getAllPlaylistSongs(id, maxPages = 20) {

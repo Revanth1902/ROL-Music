@@ -240,23 +240,25 @@ export const AudioPlayerProvider = ({ children }) => {
   // ── playSong ──────────────────────────────────────────────
   // Safe to call any number of times with different songs. Automatically resolves URLs.
   const syncPlayback = async (songToTrack) => {
-    if (loginType !== 'user' || !songToTrack?.id) return;
+    if (loginType !== 'user' || !songToTrack) return;
+    const targetId = songToTrack.id || songToTrack.sourceId || songToTrack._id;
+    if (!targetId) return;
 
     try {
       const payload = {
-        sourceId: songToTrack.id,
+        sourceId: String(targetId),
         title: songToTrack.title || 'Untitled',
         artist: songToTrack.artistName || songToTrack.artist || 'Unknown Artist',
         album: songToTrack.album || '',
-        albumCover: songToTrack.cover || '',
+        albumCover: songToTrack.cover || songToTrack.albumCover || '',
         duration: Number(songToTrack.duration) || 0,
         genre: songToTrack.genre || '',
-        audioUrl: songToTrack.src || '',
+        audioUrl: songToTrack.src || songToTrack.audioUrl || '',
         releaseDate: songToTrack.year ? `${songToTrack.year}-01-01` : undefined,
       };
 
       await createSong(payload, token);
-      await trackSongPlay(songToTrack.id, token);
+      await trackSongPlay(targetId, token);
     } catch (err) {
       console.warn('[playback] sync failed:', err.message);
     }
@@ -267,7 +269,11 @@ export const AudioPlayerProvider = ({ children }) => {
 
     // Assume it might need resolving
     let song = rawSong;
-    if (song.id) addPlayedId(song.id);
+    const songId = song.id || song.sourceId || song._id;
+    if (songId) {
+      addPlayedId(songId);
+      if (!song.id) song = { ...song, id: songId };
+    }
 
     // Optional: show loading state on the UI immediately
     setCurrent(song);

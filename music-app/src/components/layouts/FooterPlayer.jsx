@@ -1,5 +1,8 @@
 // ===================== IMPORTS =====================
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { App as CapApp } from "@capacitor/app";
 import { Box, Typography, Menu, MenuItem, LinearProgress } from "@mui/material";
 import { CircularProgress } from "@mui/material";
 
@@ -67,6 +70,112 @@ export default function FooterPlayer() {
   const [showVisualizer, setShowVisualizer] = useState(true);
   const [isSavedOffline, setIsSavedOffline] = useState(false);
 
+  const location = useLocation();
+  const isHistoryPushedRef = useRef(false);
+  const prevPathRef = useRef(location.pathname);
+
+  // Clean close of fullscreen player (user action via chevron or swipe-down)
+  const closeFullscreen = useCallback(() => {
+    if (isHistoryPushedRef.current) {
+      isHistoryPushedRef.current = false;
+      try {
+        window.history.back();
+      } catch (err) {
+        console.warn('[FooterPlayer] history.back error:', err);
+      }
+    }
+    setOpenFull(false);
+    setShowQueue(false);
+    setIsLyricsFlipped(false);
+  }, []);
+
+  // When openFull becomes true, push a state into browser history so back button closes it without route change
+  useEffect(() => {
+    if (openFull) {
+      if (!isHistoryPushedRef.current) {
+        try {
+          window.history.pushState(
+            { ...window.history.state, rolFullscreenPlayer: true },
+            '',
+            window.location.href
+          );
+          isHistoryPushedRef.current = true;
+        } catch (err) {
+          console.warn('[FooterPlayer] pushState error:', err);
+        }
+      }
+    }
+  }, [openFull]);
+
+  // Handle browser/mobile back button (popstate event)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isHistoryPushedRef.current || openFull) {
+        isHistoryPushedRef.current = false;
+        setOpenFull(false);
+        setShowQueue(false);
+        setIsLyricsFlipped(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [openFull]);
+
+  // Support for Capacitor native Android hardware back button
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let backHandler = null;
+    const registerCapacitorBack = async () => {
+      try {
+        backHandler = await CapApp.addListener('backButton', () => {
+          if (openFull) {
+            closeFullscreen();
+          } else if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            CapApp.exitApp();
+          }
+        });
+      } catch (e) {
+        console.warn('[FooterPlayer] Capacitor backButton listener error:', e);
+      }
+    };
+    registerCapacitorBack();
+
+    return () => {
+      if (backHandler?.remove) backHandler.remove();
+    };
+  }, [openFull, closeFullscreen]);
+
+  // Auto-close fullscreen if user navigates to another page (e.g., from 3-dot menu)
+  useEffect(() => {
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      if (openFull) {
+        isHistoryPushedRef.current = false;
+        setOpenFull(false);
+        setShowQueue(false);
+        setIsLyricsFlipped(false);
+      }
+    }
+  }, [location.pathname, openFull]);
+
+  // Cleanup history entry on unmount
+  useEffect(() => {
+    return () => {
+      if (isHistoryPushedRef.current) {
+        isHistoryPushedRef.current = false;
+        try {
+          window.history.back();
+        } catch {}
+      }
+    };
+  }, []);
+
   const touchStartRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -108,7 +217,7 @@ export default function FooterPlayer() {
     } else if (diffY > 80 && Math.abs(diffY) > Math.abs(diffX)) {
       // Vertical swipe down to minimize
       triggerHaptic(20);
-      setOpenFull(false);
+      closeFullscreen();
     }
   };
 
@@ -660,7 +769,7 @@ export default function FooterPlayer() {
           <div className="fs-content">
             {/* Top bar */}
             <div className="fs-topbar">
-              <button className="fs-chevron-btn" onClick={() => setOpenFull(false)} aria-label="Close">
+              <button className="fs-chevron-btn" onClick={closeFullscreen} aria-label="Close">
                 <KeyboardArrowDownIcon sx={{ fontSize: '2rem' }} />
               </button>
               <span className="fs-topbar-label">Now Playing</span>

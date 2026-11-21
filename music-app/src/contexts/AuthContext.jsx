@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
     try {
       const songs = await getLikedSongs(activeToken);
       const ids = songs
-        .map(song => song?.id || song?._id || song?.sourceId || song?.song?.id || song?.song?._id)
+        .map(song => song?.id || song?._id || song?.sourceId || song?.song?.id || song?.song?._id || song?.song?.sourceId)
         .filter(Boolean)
         .map(String);
       setLikedSongIds(ids);
@@ -204,7 +204,20 @@ export function AuthProvider({ children }) {
 
     const isLiked = likedSongIds.includes(String(songId));
     try {
-      await toggleLikeSong(songId, token, isLiked, song);
+      const payload = {
+        id: song.id || song._id || song.sourceId,
+        sourceId: song.sourceId || song.id || song._id,
+        title: song.title || song.name || 'Untitled',
+        artist: song.artistName || song.artist || 'Unknown Artist',
+        artistName: song.artistName || song.artist || 'Unknown Artist',
+        cover: song.cover || song.albumCover || '',
+        albumCover: song.albumCover || song.cover || '',
+        src: song.src || song.audioUrl || '',
+        audioUrl: song.audioUrl || song.src || '',
+        duration: Number(song.duration) || 0,
+        album: song.album || '',
+      };
+      await toggleLikeSong(songId, token, isLiked, payload);
       await refreshLikedSongs(token);
       return true;
     } catch (error) {

@@ -20,7 +20,24 @@ export default function RecentlyPlayed() {
     const load = async () => {
       try {
         const data = await getRecentlyPlayed(token);
-        const normalized = data.map(item => item.song || item);
+        const normalized = (data || []).map(item => {
+          const s = item?.song || item;
+          if (!s) return null;
+          return {
+            ...s,
+            id: s.id || s.sourceId || s._id,
+            sourceId: s.sourceId || s.id || s._id,
+            title: s.title || s.name || 'Untitled',
+            artistName: s.artistName || s.artist || 'Unknown Artist',
+            artist: s.artist || s.artistName || 'Unknown Artist',
+            cover: s.cover || s.albumCover || '',
+            albumCover: s.albumCover || s.cover || '',
+            src: s.src || s.audioUrl || '',
+            audioUrl: s.audioUrl || s.src || '',
+            duration: Number(s.duration) || 0,
+            album: s.album || '',
+          };
+        }).filter(Boolean);
         setSongs(normalized);
       } finally {
         setLoading(false);
