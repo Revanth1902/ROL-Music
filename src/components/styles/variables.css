@@ -1,0 +1,43 @@
+/* variables.css - theme tokens */
+:root{
+  /* Colors */
+  --bg: #071116;           /* deep background */
+  --panel: linear-gradient(180deg,#071118 0%, #0b141a 100%);
+  --card: #0b1220;
+  --text: #e6f0f7;
+  --muted: #93a3b2;
+  --accent: #1ed760;       /* neon green similar to spotify */
+  --accent-2: #13b46b;
+  --danger: #e85d5d;
+
+  /* Glass & overlays */
+  --glass: rgba(255,255,255,0.03);
+  --glass-2: rgba(0,0,0,0.35);
+
+  /* Shadows */
+  --shadow-soft: 0 6px 20px rgba(2,8,23,0.6);
+  --shadow-subtle: 0 3px 10px rgba(2,8,23,0.45);
+
+  /* Radii */
+  --r-lg: 16px;
+  --r-md: 12px;
+  --r-sm: 8px;
+
+  /* Spacing scale */
+  --space-xs: 6px;
+  --space-sm: 10px;
+  --space: 16px;
+  --space-lg: 24px;
+
+  /* Font sizes */
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce){
+  * { transition: none !important; animation: none !important; }
+}

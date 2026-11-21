@@ -1,0 +1,74 @@
+/* layout.css - main layout, responsive rules */
+
+/* Layout base */
+.app-shell {
+  display:flex;
+  min-height:100vh;
+  gap: 20px;
+}
+
+/* Main content area (used inside App.jsx where sidebar may be present) */
+.main-content {
+  flex:1;
+  display:block;
+  padding-bottom: 120px; /* enough space for fixed player */
+  min-height: calc(100vh - 84px);
+}
+
+/* Header-like spacing for pages */
+.page-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding: 12px 0;
+}
+
+/* Generic card container row */
+.row-scroll {
+  display:flex;
+  gap: 12px;
+  overflow-x:auto;
+  padding-bottom:8px;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* Hide scrollbars on webkit */
+.row-scroll::-webkit-scrollbar { height:6px; }
+.row-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius:6px; }
+
+/* 3-dot sidebar floating button (mobile) */
+.sidebar-toggle {
+  position: fixed;
+  left: 14px;
+  top: 16px;
+  z-index:1400;
+  height:42px;
+  width:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
+  border-radius:12px;
+  box-shadow: var(--shadow-subtle);
+  color: var(--text);
+  cursor:pointer;
+}
+
+/* overlay used when sidebar is open */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index:1300;
+  opacity:0;
+  pointer-events:none;
+  transition: opacity .18s ease;
+}
+.sidebar-overlay.open { opacity:1; pointer-events:auto; }
+
+/* Responsive breakpoints */
+@media (min-width: 992px) {
+  .main-content { padding-left: 260px; }
+  .sidebar-toggle { display:none; }
+}

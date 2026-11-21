@@ -1,0 +1,27 @@
+/* mobileNav.css - Mobile bottom navigation */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 66px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
+  display:flex;
+  align-items:center;
+  justify-content:space-around;
+  padding: 6px 10px;
+  z-index: 1200;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: 0 -6px 18px rgba(0,0,0,0.6);
+}
+
+/* nav item */
+.mobile-nav .nav-action {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  color: var(--muted);
+  font-size: 11px;
+}
+.mobile-nav .nav-action.active { color: var(--accent); transform: translateY(-2px); }

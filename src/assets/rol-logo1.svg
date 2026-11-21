@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Outer glow ring -->
+  <circle cx="24" cy="24" r="22" fill="rgba(15,12,40,0.82)" stroke="rgba(108,99,255,0.55)" stroke-width="1.5"/>
+  <!-- R letter -->
+  <text x="8" y="32" font-family="Plus Jakarta Sans,Outfit,sans-serif" font-size="22" font-weight="900" fill="url(#rg)" letter-spacing="-1">ROL</text>
+  <defs>
+    <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#86efac"/>
+    </linearGradient>
+  </defs>
+</svg>
