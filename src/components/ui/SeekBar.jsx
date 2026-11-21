@@ -22,7 +22,7 @@ export default function SeekBar({ progress, duration, onSeek }) {
       return;
     }
 
-    setLocal(progress);
+    requestAnimationFrame(() => setLocal(progress));
   }, [progress]);
 
   const handleChange = (e) => {

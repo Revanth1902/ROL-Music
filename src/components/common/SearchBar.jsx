@@ -6,7 +6,11 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import { useNavigate } from 'react-router-dom'
 import { globalSearch, normalizeSong } from '../../api/apiService'
 import { useAudioPlayer } from '../../contexts/AudioPlayerContext'
+import SongActions from '../ui/SongActions'
 import '../styles/searchbar.css'
+
+import { useAuth } from '../../contexts/AuthContext'
+import { trackUserSearch } from '../../utils/userTracker'
 
 export default function SearchBar() {
   const [query, setQuery] = useState('')
@@ -16,6 +20,7 @@ export default function SearchBar() {
   const debounceRef = useRef(null)
   const wrapRef = useRef(null)
   const { playSong } = useAudioPlayer()
+  const { user } = useAuth()
   const navigate = useNavigate()
 
   // Close dropdown when clicking outside
@@ -32,11 +37,12 @@ export default function SearchBar() {
   const doSearch = useCallback(async (q) => {
     if (!q.trim()) { setResults(null); setOpen(false); return }
     setLoading(true)
+    trackUserSearch(user?.id || user?._id || 'guest', q)
     const data = await globalSearch(q)
     setResults(data)
     setOpen(true)
     setLoading(false)
-  }, [])
+  }, [user])
 
   const handleSongClick = async (song) => {
     setOpen(false)
@@ -51,7 +57,9 @@ export default function SearchBar() {
           const match = searchRes.results?.find(s => s.id === song.id) || searchRes.results?.[0]
           if (match?.src) playable = { ...song, ...match }
         }
-      } catch { }
+      } catch (err) {
+        console.error(err);
+      }
     }
     if (playable.src) playSong(playable)
   }
@@ -158,7 +166,10 @@ export default function SearchBar() {
                       <div className="search-item-title">{song.title}</div>
                       <div className="search-item-sub">{song.artistName}</div>
                     </div>
-                    <PlayArrowIcon sx={{ color: '#6c63ff', fontSize: 20, flexShrink: 0 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                      <SongActions song={song} size="small" />
+                      <PlayArrowIcon sx={{ color: '#6c63ff', fontSize: 20, flexShrink: 0 }} />
+                    </div>
                   </div>
                 )
               })}

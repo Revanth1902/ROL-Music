@@ -1,32 +1,41 @@
-<html>
-    <head>
-        <title>
-            Sample Page
-        </title>
-        <link rel="stylesheet" href="/style.css">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0f19" />
+    <title>ROL Music</title>
+    <script>
+      // Disable right-click
+      document.addEventListener('contextmenu', event => event.preventDefault());
 
-    </head>
-    <body>
-        <div class="maincontainer">
-            <div id = "leftdiv">
-                <h2>This is Left div</h2>
-                <p>this is paragraph from left container</p>
-                <h3>The Image is on right side </h3>
-                <h4>Click Below Link</h4>
-                <a src="https://www.google.com" target="_blank">Click Me</a>
-            </div>
-            <div id="middlediv">
-                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ6vBz9VgjksAaZZkWOm8Lk3ZSb7gO25eP0-Q&s" alt="Image"/>
-                <span> This is Image is displayed here</span>
-            </div>
-
-            <div id="rightdiv">
-                 <h2>This is Right div</h2>
-                <p>this is paragraph from right container</p>
-                <h3>The Image is on right side </h3>
-                <h4>Click Below Link</h4>
-                <a src="https://www.google.com" target="_blank">Click Me</a>
-            </div>
-        </div>
-    </body>
+      // Disable usual inspection shortcuts
+      document.onkeydown = function (e) {
+        // F12
+        if (e.key === "F12") {
+          return false;
+        }
+        // Ctrl+Shift+I (Windows) or Cmd+Opt+I (Mac)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "I") {
+          return false;
+        }
+        // Ctrl+Shift+J (Windows) or Cmd+Opt+J (Mac)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "J") {
+          return false;
+        }
+        // Ctrl+U (Windows) or Cmd+Opt+U (Mac) - View Source
+        if ((e.ctrlKey || e.metaKey) && e.key === "u") {
+          return false;
+        }
+        // Ctrl+Shift+C (Windows) or Cmd+Opt+C (Mac) - Inspect Element
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "C") {
+          return false;
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

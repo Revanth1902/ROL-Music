@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Skeleton, Divider, CircularProgress } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import ShuffleIcon from '@mui/icons-material/Shuffle'
 import VerifiedIcon from '@mui/icons-material/Verified'
 import PeopleIcon from '@mui/icons-material/People'
-import { getArtistById, getArtistSongs, normalizeSong } from '../api/apiService'
+import { getArtistById, getArtistSongs } from '../api/apiService'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
 import { useQueue } from '../contexts/QueueContext'
 import SongListItem from '../components/common/SongListItem'
@@ -29,7 +30,7 @@ export default function ArtistDetail() {
     const [allLoaded, setAllLoaded] = useState(false)
     const [totalPages] = useState(10)
     const { playSong } = useAudioPlayer()
-    const { addToQueue } = useQueue()
+    const { playList } = useQueue()
     const [scrolled, setScrolled] = useState(false)
 
     useEffect(() => {
@@ -54,11 +55,9 @@ export default function ArtistDetail() {
     // 1. Load artist profile
     useEffect(() => {
         if (!id) return
-        setLoading(true)
-        setSongs([])
-        setCurrentPage(0)
-        setAllLoaded(false)
+        let isMounted = true
         getArtistById(id).then(a => {
+            if (!isMounted) return
             setArtist(a)
             setLoading(false)
             // Show top songs immediately
@@ -66,15 +65,16 @@ export default function ArtistDetail() {
                 setSongs(a.topSongs)
             }
         })
+        return () => { isMounted = false }
     }, [id])
 
     // 2. As soon as artist loads, start fetching all 10 pages in the background
     useEffect(() => {
         if (!id || loading) return
-        setSongsLoading(true)
         let cancelled = false
 
         async function loadPages() {
+            setSongsLoading(true)
             const all = []
             for (let page = 1; page <= totalPages; page++) {
                 if (cancelled) break
@@ -100,12 +100,16 @@ export default function ArtistDetail() {
 
         loadPages()
         return () => { cancelled = true }
-    }, [id, loading])
+    }, [id, loading, totalPages])
 
     const playAll = () => {
         if (!songs.length) return
-        playSong(songs[0])
-        songs.slice(1).forEach(s => addToQueue(s))
+        playList(songs, null, false, playSong)
+    }
+
+    const playShuffled = () => {
+        if (!songs.length) return
+        playList(songs, null, true, playSong)
     }
 
     if (loading) return (
@@ -178,6 +182,9 @@ export default function ArtistDetail() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
                         <button className="detail-play-all-btn" onClick={playAll} disabled={!songs.length}>
                             <PlayArrowIcon /> Play All
+                        </button>
+                        <button className="detail-shuffle-btn" onClick={playShuffled} disabled={!songs.length}>
+                            <ShuffleIcon /> Shuffle
                         </button>
                         {songsLoading && (
                             <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', gap: 6 }}>

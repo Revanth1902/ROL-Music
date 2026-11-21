@@ -1,0 +1,246 @@
+/* ===================== SPOTIFY MOBILE SHARE MODAL ===================== */
+.share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  animation: shareFadeIn 0.25s ease-out;
+}
+
+@keyframes shareFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.share-modal-container {
+  width: 100%;
+  max-width: 440px;
+  height: 100vh;
+  max-height: 100vh;
+  background: #121212;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* ── Top Bar ── */
+.share-modal-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #121212;
+  z-index: 10;
+}
+
+.share-close-btn {
+  color: #ffffff !important;
+  font-size: 1.2rem !important;
+  padding: 8px !important;
+}
+
+.share-modal-title {
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+/* ── Card Area ── */
+.share-card-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+}
+
+.share-card-canvas {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 3 / 4;
+  border-radius: 24px;
+  padding: 24px 20px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  position: relative;
+  transition: background 0.4s ease;
+  box-sizing: border-box;
+}
+
+/* Inner Music Card */
+.share-music-card {
+  width: 100%;
+  background: rgba(18, 18, 18, 0.92);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+}
+
+.share-card-art {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.share-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.share-card-song-title {
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-card-song-artist {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.88rem;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Brand logo inside card */
+.share-card-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.share-brand-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* Theme picker circles */
+.share-theme-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.share-theme-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.share-theme-circle.active, .share-theme-circle:hover {
+  transform: scale(1.18);
+  border-color: #ffffff;
+}
+
+/* ── Bottom Share Actions Drawer ── */
+.share-actions-drawer {
+  background: #181818;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 24px 16px 36px 16px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.share-actions-scroll {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.share-actions-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.share-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  min-width: 68px;
+  transition: transform 0.15s;
+}
+
+.share-action-item:hover {
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
+.share-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.share-action-item span {
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Icon specific brand colors */
+.icon-link { background: #334155; }
+.icon-whatsapp { background: #25d366; }
+.icon-instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+.icon-snapchat { background: #fffc00; color: #000000 !important; }
+.icon-twitter { background: #000000; border: 1px solid rgba(255,255,255,0.2); }
+.icon-facebook { background: #1877f2; }
+.icon-telegram { background: #229ed9; }
+.icon-more { background: #6366f1; }
+
+@media (min-width: 600px) {
+  .share-modal-container {
+    max-height: 90vh;
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}

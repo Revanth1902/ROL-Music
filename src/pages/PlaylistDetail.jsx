@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Skeleton, Divider, CircularProgress } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
-import { getAllPlaylistSongs, getPlaylistById } from '../api/apiService'
+import ShuffleIcon from '@mui/icons-material/Shuffle'
+import { getPlaylistDetails } from '../api/authApi'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
 import { useQueue } from '../contexts/QueueContext'
+import { useAuth } from '../contexts/AuthContext'
 import SongListItem from '../components/common/SongListItem'
 import '../components/styles/detailPage.css'
 
@@ -13,9 +15,10 @@ export default function PlaylistDetail() {
     const { id } = useParams()
     const navigate = useNavigate()
     const [playlist, setPlaylist] = useState(null)
+    const { loginType, token, openAuthModal } = useAuth()
     const [loading, setLoading] = useState(true)
     const { playSong } = useAudioPlayer()
-    const { addToQueue } = useQueue()
+    const { playList } = useQueue()
     const [scrolled, setScrolled] = useState(false)
 
     useEffect(() => {
@@ -39,18 +42,29 @@ export default function PlaylistDetail() {
 
     useEffect(() => {
         if (!id) return
-        setLoading(true)
-        // Fetch all pages automatically
-        getAllPlaylistSongs(id, 20).then(pl => {
-            setPlaylist(pl)
+        let isMounted = true
+        if (loginType !== 'user') {
+            openAuthModal('Login required to view playlist details')
+            requestAnimationFrame(() => { if (isMounted) setLoading(false) })
+            return
+        }
+
+        getPlaylistDetails(id, token).then((data) => {
+            if (!isMounted) return
+            setPlaylist(data ? { ...data, title: data.playlistName || data.title, songs: data.songs || [] } : null)
             setLoading(false)
         })
-    }, [id])
+        return () => { isMounted = false }
+    }, [id, loginType, token, openAuthModal])
 
     const playAll = () => {
         if (!playlist?.songs?.length) return
-        playSong(playlist.songs[0])
-        playlist.songs.slice(1).forEach(s => addToQueue(s))
+        playList(playlist.songs, null, false, playSong)
+    }
+
+    const playShuffled = () => {
+        if (!playlist?.songs?.length) return
+        playList(playlist.songs, null, true, playSong)
     }
 
     if (loading) return (
@@ -92,15 +106,19 @@ export default function PlaylistDetail() {
                 <div className="detail-meta">
                     <span className="detail-type-badge">Playlist</span>
                     <h1 className="detail-title">{playlist.title}</h1>
+                    <p className="detail-sub">{playlist.privacy || 'private'}</p>
                     {playlist.description && (
                         <p className="detail-sub" style={{ maxWidth: 400, fontSize: '0.82rem', opacity: 0.7, whiteSpace: 'pre-line' }}>
                             {playlist.description}
                         </p>
                     )}
                     <p className="detail-count">{playlist.songs.length} songs</p>
-                    <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                         <button className="detail-play-all-btn" onClick={playAll}>
                             <PlayArrowIcon /> Play All
+                        </button>
+                        <button className="detail-shuffle-btn" onClick={playShuffled}>
+                            <ShuffleIcon /> Shuffle
                         </button>
                     </div>
                 </div>

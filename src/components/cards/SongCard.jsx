@@ -5,7 +5,7 @@ import PauseIcon from '@mui/icons-material/Pause'
 import { useAudioPlayer } from '../../contexts/AudioPlayerContext'
 import { useQueue } from '../../contexts/QueueContext'
 import ThreeDotMenu from '../ui/ThreeDotMenu'
-import { getSongById, searchSongs } from '../../api/apiService'
+import SongActions from '../ui/SongActions'
 import rolLogo from '../../assets/rol-logo1.png'
 import '../styles/cards.css'
 
@@ -67,6 +67,20 @@ export default function SongCard({ song, songList = [] }) {
             <PlayArrowIcon className="song-card-play-icon" />
           )}
         </div>
+        <div
+          className="song-card-actions-overlay"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
+            <defs>
+              <linearGradient id="songActionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#00e5ff" />
+                <stop offset="100%" stopColor="#7c4dff" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <SongActions song={song} size="small" />
+        </div>
         {isCurrent && <div className="song-card-playing-bar" />}
       </div>
 
@@ -75,7 +89,9 @@ export default function SongCard({ song, songList = [] }) {
           <div className="song-card-title" title={song.title}>{song.title}</div>
           <div className="song-card-artist" title={song.artistName}>{song.artistName}</div>
         </div>
-        <ThreeDotMenu song={song} songList={songList} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <ThreeDotMenu song={song} songList={songList} />
+        </div>
       </div>
     </div>
   )

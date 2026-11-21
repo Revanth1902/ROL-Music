@@ -2,12 +2,14 @@ import React from 'react';
 import { Box, Typography, Slider, Switch, FormControlLabel, Button } from '@mui/material';
 import { useAudioPlayer } from '../contexts/AudioPlayerContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { LANGUAGES, LANGUAGE_MAP } from '../api/apiService';
 import '../components/styles/settings.css';
 
 export default function Settings() {
   const { eqValues, setEqBand, setEqPreset, resetEQ, effects, setHall } = useAudioPlayer();
-  const { language, languages, toggleLanguage } = useLanguage();
+  const { languages, toggleLanguage } = useLanguage();
+  const { loginType, logout } = useAuth();
 
   const EQ_PRESET_NAMES = [
     'Balanced', 'Flat', 'Jazz', 'Bass Boost', 'Treble Boost',
@@ -20,6 +22,11 @@ export default function Settings() {
   return (
     <Box className="settings-page">
       <Typography variant="h4" className="settings-main-title">⚙️ Settings</Typography>
+      {loginType === 'user' && (
+        <Button variant="outlined" onClick={logout} sx={{ alignSelf: 'flex-start', color: 'white', borderColor: 'rgba(255,255,255,0.16)', mb: 2 }}>
+          Logout
+        </Button>
+      )}
 
       {/* Language Section */}
       <Box className="settings-card">

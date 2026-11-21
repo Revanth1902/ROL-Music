@@ -1,5 +1,8 @@
 // ===================== IMPORTS =====================
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
+import { App as CapApp } from "@capacitor/app";
 import { Box, Typography, Menu, MenuItem, LinearProgress } from "@mui/material";
 import { CircularProgress } from "@mui/material";
 
@@ -9,6 +12,7 @@ import PauseIcon from "@mui/icons-material/Pause";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
 import RepeatIcon from "@mui/icons-material/Repeat";
+import ShuffleIcon from "@mui/icons-material/Shuffle";
 import DownloadIcon from "@mui/icons-material/Download";
 import QueueMusicIcon from "@mui/icons-material/QueueMusic";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -19,16 +23,26 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LyricsIcon from "@mui/icons-material/Lyrics";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeDownIcon from "@mui/icons-material/VolumeDown";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import { MdDragHandle } from 'react-icons/md';
 import rolLogo from '../../assets/rol-logo1.png';
 import SeekBar from "../ui/SeekBar"
 import WaveProgressBar from "../ui/WaveProgressBar";
+import SongActions from "../ui/SongActions";
+import ThreeDotMenu from "../ui/ThreeDotMenu";
 import { useAudioPlayer } from "../../contexts/AudioPlayerContext";
 import { useQueue } from "../../contexts/QueueContext";
 import { shareSong } from "../../utils/share";
-import { getSongById, searchSongs } from "../../api/apiService";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import MP3Tag from 'mp3tag.js';
+
+import DownloadForOfflineIcon from "@mui/icons-material/DownloadForOffline";
+
+import { triggerHaptic } from "../../utils/haptics";
+import { saveSongOffline, isSongSavedOffline } from "../../utils/offlineStorage";
 
 import "../styles/footerPlayer.css";
 
@@ -36,9 +50,11 @@ import "../styles/footerPlayer.css";
 // ===================== MAIN COMPONENT =====================
 export default function FooterPlayer() {
 
-  const { current, playing, audioLoading, playSong, togglePlay, progress, duration, seek, toggleLoop, loop } =
-    useAudioPlayer();
-  const { queue, setQueue, reorderQueue, removeFromQueue, addNext } = useQueue();
+  const {
+    current, playing, audioLoading, playSong, togglePlay, progress, duration, seek, toggleLoop, loop, volume, setVolume, isMuted, toggleMute,
+    analyserNode, pannerVal, setPannerVal
+  } = useAudioPlayer();
+  const { queue, setQueue, reorderQueue, removeFromQueue, isShuffle, toggleShuffle, isAutoPlay, toggleAutoPlay } = useQueue();
 
   const [openFull, setOpenFull] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
@@ -50,6 +66,160 @@ export default function FooterPlayer() {
   const [lyricsError, setLyricsError] = useState(false);
   const [showDesktopLyrics, setShowDesktopLyrics] = useState(false);
   const [isLyricsFlipped, setIsLyricsFlipped] = useState(false);
+
+  const [showVisualizer, setShowVisualizer] = useState(true);
+  const [isSavedOffline, setIsSavedOffline] = useState(false);
+
+  const location = useLocation();
+  const isHistoryPushedRef = useRef(false);
+  const prevPathRef = useRef(location.pathname);
+
+  // Clean close of fullscreen player (user action via chevron or swipe-down)
+  const closeFullscreen = useCallback(() => {
+    if (isHistoryPushedRef.current) {
+      isHistoryPushedRef.current = false;
+      try {
+        window.history.back();
+      } catch (err) {
+        console.warn('[FooterPlayer] history.back error:', err);
+      }
+    }
+    setOpenFull(false);
+    setShowQueue(false);
+    setIsLyricsFlipped(false);
+  }, []);
+
+  // When openFull becomes true, push a state into browser history so back button closes it without route change
+  useEffect(() => {
+    if (openFull) {
+      if (!isHistoryPushedRef.current) {
+        try {
+          window.history.pushState(
+            { ...window.history.state, rolFullscreenPlayer: true },
+            '',
+            window.location.href
+          );
+          isHistoryPushedRef.current = true;
+        } catch (err) {
+          console.warn('[FooterPlayer] pushState error:', err);
+        }
+      }
+    }
+  }, [openFull]);
+
+  // Handle browser/mobile back button (popstate event)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isHistoryPushedRef.current || openFull) {
+        isHistoryPushedRef.current = false;
+        setOpenFull(false);
+        setShowQueue(false);
+        setIsLyricsFlipped(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [openFull]);
+
+  // Support for Capacitor native Android hardware back button
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let backHandler = null;
+    const registerCapacitorBack = async () => {
+      try {
+        backHandler = await CapApp.addListener('backButton', () => {
+          if (openFull) {
+            closeFullscreen();
+          } else if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            CapApp.exitApp();
+          }
+        });
+      } catch (e) {
+        console.warn('[FooterPlayer] Capacitor backButton listener error:', e);
+      }
+    };
+    registerCapacitorBack();
+
+    return () => {
+      if (backHandler?.remove) backHandler.remove();
+    };
+  }, [openFull, closeFullscreen]);
+
+  // Auto-close fullscreen if user navigates to another page (e.g., from 3-dot menu)
+  useEffect(() => {
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      if (openFull) {
+        isHistoryPushedRef.current = false;
+        setOpenFull(false);
+        setShowQueue(false);
+        setIsLyricsFlipped(false);
+      }
+    }
+  }, [location.pathname, openFull]);
+
+  // Cleanup history entry on unmount
+  useEffect(() => {
+    return () => {
+      if (isHistoryPushedRef.current) {
+        isHistoryPushedRef.current = false;
+        try {
+          window.history.back();
+        } catch {}
+      }
+    };
+  }, []);
+
+  const touchStartRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (current?.id) {
+      isSongSavedOffline(current.id).then(setIsSavedOffline).catch(console.error);
+    }
+  }, [current?.id]);
+
+  const handleSaveOffline = async () => {
+    if (!current) return;
+    triggerHaptic(25);
+    try {
+      if (isSavedOffline) {
+        setIsSavedOffline(false);
+      } else {
+        await saveSongOffline(current);
+        setIsSavedOffline(true);
+      }
+    } catch (err) {
+      console.warn('[FooterPlayer] offline save failed:', err.message);
+    }
+  };
+
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (e) => {
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - touchStartRef.current.x;
+    const diffY = touch.clientY - touchStartRef.current.y;
+
+    if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY)) {
+      // Horizontal swipe
+      triggerHaptic(20);
+      if (diffX < 0) playNext();
+      else playPrevious();
+    } else if (diffY > 80 && Math.abs(diffY) > Math.abs(diffX)) {
+      // Vertical swipe down to minimize
+      triggerHaptic(20);
+      closeFullscreen();
+    }
+  };
 
   const titleRef = useRef();
   const artistRef = useRef();
@@ -76,7 +246,7 @@ export default function FooterPlayer() {
     if (current && firstPlayRef.current) {
       firstPlayRef.current = false;
       if (window.innerWidth <= 768) {
-        setOpenFull(true);
+        requestAnimationFrame(() => setOpenFull(true));
       }
     }
   }, [current]);
@@ -115,28 +285,31 @@ export default function FooterPlayer() {
       navigator.mediaSession.setActionHandler("nexttrack", playNext);
       navigator.mediaSession.setActionHandler("previoustrack", playPrevious);
     }
-  }, [current, playing, queue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, playing, queue, togglePlay]);
 
   // Fetch Lyrics
   useEffect(() => {
     if (!current) return;
-    setLyricsData(null);
-    setLyricsError(false);
-    setLyricsLoading(true);
 
-    let cleanTitle = current.title || "";
-    // Remove " (From ...)" or similar brackets that might ruin lyrics matching
-    cleanTitle = cleanTitle.replace(/\s*\(From.*?\)\s*/i, "").trim();
+    let isMounted = true;
+    const cleanTitle = (current.title || "").replace(/\s*\(From.*?\)\s*/i, "").trim();
 
-    const q = encodeURIComponent(cleanTitle);
-    fetch(`https://lrclib.net/api/search?q=${q}`)
-      .then(r => r.json())
-      .then(data => {
+    const fetchLyrics = async () => {
+      setLyricsData(null);
+      setLyricsError(false);
+      setLyricsLoading(true);
+
+      try {
+        const q = encodeURIComponent(cleanTitle);
+        const r = await fetch(`https://lrclib.net/api/search?q=${q}`);
+        const data = await r.json();
+        if (!isMounted) return;
+
         if (data && data.length > 0) {
-          // Find the best match
           const searchTitle = cleanTitle.toLowerCase();
           const searchArtist = (current.artistName || "").toLowerCase();
-          
+
           let track = data[0];
           let bestScore = -1;
 
@@ -145,20 +318,15 @@ export default function FooterPlayer() {
             const itemTitle = (item.trackName || item.name || "").toLowerCase();
             const itemArtist = (item.artistName || "").toLowerCase();
 
-            // Title match
             if (itemTitle === searchTitle) score += 20;
             else if (itemTitle.includes(searchTitle) || searchTitle.includes(itemTitle)) score += 10;
-            else score -= 10; // penalty for wrong title
+            else score -= 10;
 
-            // Artist match
             if (searchArtist && (itemArtist.includes(searchArtist) || searchArtist.includes(itemArtist) || itemArtist === searchArtist)) {
               score += 20;
             }
 
-            // Prefer synced lyrics
-            if (item.syncedLyrics) {
-              score += 5;
-            }
+            if (item.syncedLyrics) score += 5;
 
             if (score > bestScore) {
               bestScore = score;
@@ -183,13 +351,20 @@ export default function FooterPlayer() {
         } else {
           setLyricsError(true);
         }
-      })
-      .catch((e) => {
-        console.error("Lyrics Error:", e);
-        setLyricsError(true);
-      })
-      .finally(() => setLyricsLoading(false));
-  }, [current?.title]);
+      } catch (e) {
+        if (isMounted) {
+          console.error("Lyrics Error:", e);
+          setLyricsError(true);
+        }
+      } finally {
+        if (isMounted) setLyricsLoading(false);
+      }
+    };
+
+    fetchLyrics();
+
+    return () => { isMounted = false; };
+  }, [current]);
 
   // ===================== MARQUEE =====================
   useEffect(() => {
@@ -216,7 +391,7 @@ export default function FooterPlayer() {
 
 
   // ── Sanitize filename ──────────────────────────────────
-  const sanitize = (s) => (s || '').replace(/[&<>"'\[\]]/g, c => ({ '&': 'and', '<': '', '>': "", "'": "", "\"": '', ' [': ' ', ' ]': ' ' }[c] ?? '')).trim().replace(/  +/g, ' ');
+  const sanitize = (s) => (s || '').replace(/[&<>"'[\]]/g, c => ({ '&': 'and', '<': '', '>': "", "'": "", "\"": '', ' [': ' ', ' ]': ' ' }[c] ?? '')).trim().replace(/  +/g, ' ');
 
   // ===================== DOWNLOAD WITH METADATA + PROGRESS =====================
   const downloadSong = async (song) => {
@@ -344,7 +519,9 @@ export default function FooterPlayer() {
         document.body.removeChild(a);
 
         setTimeout(() => URL.revokeObjectURL(url), 2000);
-      } catch { }
+      } catch (err) {
+        console.error('[download error]', err);
+      }
 
       setDlState(null);
     }
@@ -480,11 +657,20 @@ export default function FooterPlayer() {
               </div>
             </div>
           </div>
+          <SongActions song={current} size="small" />
         </Box>
 
         {/* CENTER */}
         <Box className="footer-center">
           <Box className="footer-controls">
+            <Box
+              className={`fp-ctrl-btn ${isShuffle ? 'fp-ctrl-active' : ''}`}
+              onClick={toggleShuffle}
+              title={isShuffle ? 'Shuffle On' : 'Shuffle Off'}
+            >
+              <ShuffleIcon fontSize="small" />
+            </Box>
+
             <Box className="fp-ctrl-btn" onClick={playPrevious} title="Previous">
               <SkipPreviousIcon fontSize="small" />
             </Box>
@@ -500,9 +686,17 @@ export default function FooterPlayer() {
             <Box
               className={`fp-ctrl-btn ${loop ? 'fp-ctrl-active' : ''}`}
               onClick={toggleLoop}
-              title="Loop"
+              title="Repeat"
             >
               <RepeatIcon fontSize="small" />
+            </Box>
+
+            <Box
+              className={`fp-ctrl-btn ${isAutoPlay ? 'fp-ctrl-active' : ''}`}
+              onClick={toggleAutoPlay}
+              title={isAutoPlay ? 'Autoplay On (Play similar songs when queue ends)' : 'Autoplay Off'}
+            >
+              <AutoAwesomeIcon fontSize="small" />
             </Box>
           </Box>
 
@@ -532,13 +726,39 @@ export default function FooterPlayer() {
           >
             <QueueMusicIcon fontSize="small" />
           </Box>
+
+          {/* Volume Control */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
+            <Box
+              className={`fp-ctrl-btn ${isMuted ? 'fp-ctrl-active' : ''}`}
+              onClick={toggleMute}
+              title={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted || volume === 0 ? <VolumeOffIcon fontSize="small" /> : volume < 0.5 ? <VolumeDownIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
+            </Box>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={isMuted ? 0 : volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              style={{
+                width: 76,
+                height: 4,
+                accentColor: '#a78bfa',
+                cursor: 'pointer',
+              }}
+              title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+            />
+          </Box>
         </Box>
       </Box>
 
 
       {/* MOBILE FULLSCREEN PLAYER — PREMIUM */}
       {openFull && (
-        <div className="fullscreen-player">
+        <div className="fullscreen-player" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
           {/* ── Blurred background ── */}
           <div className="fs-bg">
             <img src={current.cover} className="fs-bg-img" alt="" aria-hidden />
@@ -549,13 +769,11 @@ export default function FooterPlayer() {
           <div className="fs-content">
             {/* Top bar */}
             <div className="fs-topbar">
-              <button className="fs-chevron-btn" onClick={() => setOpenFull(false)} aria-label="Close">
+              <button className="fs-chevron-btn" onClick={closeFullscreen} aria-label="Close">
                 <KeyboardArrowDownIcon sx={{ fontSize: '2rem' }} />
               </button>
               <span className="fs-topbar-label">Now Playing</span>
-              <button className="fs-options-btn" aria-label="Options">
-                <MoreVertIcon />
-              </button>
+              <ThreeDotMenu song={current} />
             </div>
 
             {/* Tab switcher */}
@@ -633,13 +851,6 @@ export default function FooterPlayer() {
                       <div className="fs-song-artist">{current.artistName}</div>
                       {current.album && <div className="fs-song-album">{current.album}</div>}
                     </div>
-                    <button
-                      className={`fs-lyrics-btn ${isLyricsFlipped ? 'active' : ''}`}
-                      onClick={() => setIsLyricsFlipped(l => !l)}
-                      title={isLyricsFlipped ? 'Back to Cover' : 'Show Lyrics'}
-                    >
-                      <LyricsIcon sx={{ fontSize: '1.5rem' }} />
-                    </button>
                   </div>
 
                   {/* ── Wave Seekbar ── */}
@@ -647,14 +858,14 @@ export default function FooterPlayer() {
                     <WaveProgressBar progress={progress} duration={duration} onSeek={seek} />
                   </div>
 
-                  {/* ── Controls ── */}
-                  <div className="fs-controls">
+                  {/* ── 1st Row Controls (Primary Playback) ── */}
+                  <div className="fs-controls fs-controls-row-1">
                     <button
-                      className={`fs-ctrl-btn ${loop ? 'active' : ''}`}
-                      onClick={toggleLoop}
-                      title="Repeat"
+                      className={`fs-ctrl-btn ${isShuffle ? 'active' : ''}`}
+                      onClick={toggleShuffle}
+                      title={isShuffle ? 'Shuffle On' : 'Shuffle Off'}
                     >
-                      <RepeatIcon sx={{ fontSize: '1.4rem' }} />
+                      <ShuffleIcon sx={{ fontSize: '1.4rem' }} />
                     </button>
 
                     <button className="fs-ctrl-btn" onClick={playPrevious} title="Previous">
@@ -677,11 +888,46 @@ export default function FooterPlayer() {
                     </button>
 
                     <button
+                      className={`fs-ctrl-btn ${loop ? 'active' : ''}`}
+                      onClick={toggleLoop}
+                      title="Repeat"
+                    >
+                      <RepeatIcon sx={{ fontSize: '1.4rem' }} />
+                    </button>
+                  </div>
+
+                  {/* ── 2nd Row Controls (Feature & Utility Actions) ── */}
+                  <div className="fs-controls fs-controls-row-2">
+                    <button
+                      className={`fs-ctrl-btn ${isAutoPlay ? 'active' : ''}`}
+                      onClick={toggleAutoPlay}
+                      title={isAutoPlay ? 'Autoplay On' : 'Autoplay Off'}
+                    >
+                      <AutoAwesomeIcon sx={{ fontSize: '1.3rem' }} />
+                    </button>
+
+                    <button
                       className="fs-ctrl-btn"
                       onClick={() => downloadSong(current)}
-                      title="Download"
+                      title="Download MP3"
                     >
-                      <DownloadIcon sx={{ fontSize: '1.4rem' }} />
+                      <DownloadIcon sx={{ fontSize: '1.3rem' }} />
+                    </button>
+
+                    <button
+                      className={`fs-ctrl-btn ${isSavedOffline ? 'active' : ''}`}
+                      onClick={handleSaveOffline}
+                      title={isSavedOffline ? 'Saved Offline' : 'Save for Offline Playback'}
+                    >
+                      <DownloadForOfflineIcon sx={{ fontSize: '1.3rem' }} />
+                    </button>
+
+                    <button
+                      className={`fs-ctrl-btn ${isLyricsFlipped ? 'active' : ''}`}
+                      onClick={() => setIsLyricsFlipped(l => !l)}
+                      title={isLyricsFlipped ? 'Back to Cover' : 'Show Lyrics'}
+                    >
+                      <LyricsIcon sx={{ fontSize: '1.3rem' }} />
                     </button>
                   </div>
 
@@ -701,7 +947,28 @@ export default function FooterPlayer() {
                 {/* ── VIEW: QUEUE ── */}
                 <div className="fs-view-queue">
                   <div className="fs-queue-strip">
-                    <div className="fs-queue-header">Up Next — {queue.length} songs</div>
+                    <div className="fs-queue-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>Up Next — {queue.length} songs</span>
+                      <Box
+                        onClick={toggleAutoPlay}
+                        sx={{
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          px: 1.2, py: 0.3,
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          background: isAutoPlay ? 'rgba(167, 139, 250, 0.2)' : 'rgba(255,255,255,0.08)',
+                          color: isAutoPlay ? '#a78bfa' : 'rgba(255,255,255,0.5)',
+                          border: `1px solid ${isAutoPlay ? 'rgba(167, 139, 250, 0.4)' : 'transparent'}`,
+                        }}
+                      >
+                        <AutoAwesomeIcon sx={{ fontSize: '0.85rem' }} />
+                        Autoplay: {isAutoPlay ? 'ON' : 'OFF'}
+                      </Box>
+                    </div>
                     {queue.length === 0 ? (
                       <div className="fs-queue-empty">
                         <QueueMusicIcon sx={{ fontSize: '2.5rem', opacity: 0.2, mb: 1 }} />
@@ -747,7 +1014,14 @@ export default function FooterPlayer() {
 
                                       <div className="fs-queue-info">
                                         <div className="fs-queue-title">{track.title}</div>
-                                        <div className="fs-queue-artist">{track.artistName}</div>
+                                        <div className="fs-queue-artist">
+                                          {track.artistName}
+                                          {track.isAutoplayItem && (
+                                            <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#a78bfa', background: 'rgba(167,139,250,0.15)', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                                              ✨ Radio
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
 
                                       <button
@@ -807,7 +1081,35 @@ export default function FooterPlayer() {
       {/* DESKTOP QUEUE */}
       {showQueue && (
         <Box className="desktop-queue">
-          <h4>Up Next — {queue.length} songs</h4>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+            <Typography variant="h6" sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'white', m: 0 }}>
+              Up Next — {queue.length} songs
+            </Typography>
+            <Box
+              onClick={toggleAutoPlay}
+              title="Toggle Autoplay similar songs when queue ends"
+              sx={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                px: 1.2, py: 0.3,
+                borderRadius: '12px',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                background: isAutoPlay ? 'rgba(167, 139, 250, 0.2)' : 'rgba(255,255,255,0.08)',
+                color: isAutoPlay ? '#a78bfa' : 'rgba(255,255,255,0.5)',
+                border: `1px solid ${isAutoPlay ? 'rgba(167, 139, 250, 0.4)' : 'transparent'}`,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  background: isAutoPlay ? 'rgba(167, 139, 250, 0.3)' : 'rgba(255,255,255,0.15)',
+                }
+              }}
+            >
+              <AutoAwesomeIcon sx={{ fontSize: '0.85rem' }} />
+              Autoplay: {isAutoPlay ? 'ON' : 'OFF'}
+            </Box>
+          </Box>
 
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="queue">
@@ -830,7 +1132,14 @@ export default function FooterPlayer() {
                           />
                           <div className="queue-info">
                             <div className="queue-title">{track.title}</div>
-                            <div className="queue-artist">{track.artistName}</div>
+                            <div className="queue-artist">
+                              {track.artistName}
+                              {track.isAutoplayItem && (
+                                <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#a78bfa', background: 'rgba(167,139,250,0.15)', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                                  ✨ Radio
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <Box
                             sx={{ cursor: 'pointer', color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' }, display: 'flex', alignItems: 'center', p: 0.5 }}

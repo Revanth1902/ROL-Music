@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { Box, Typography, CircularProgress } from '@mui/material'
 import PlaylistCard from '../components/cards/PlaylistCard'
-import { searchPlaylists, getModulesMulti, normalizePlaylist, decodeEntities, LANGUAGE_MAP } from '../api/apiService'
+import { searchPlaylists, getModulesMulti, decodeEntities, LANGUAGE_MAP } from '../api/apiService'
+import { getPlaylists } from '../api/authApi'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useAuth } from '../contexts/AuthContext'
 import '../components/styles/page.css'
 
 function pickCover(imageArr) {
@@ -13,18 +15,40 @@ function pickCover(imageArr) {
 
 export default function Playlists() {
   const { languages, language } = useLanguage()
+  const { loginType, token, openAuthModal } = useAuth()
   const [playlists, setPlaylists] = useState([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
   const debounceRef = React.useRef(null)
-  const activeLangs = languages?.length ? languages : [language]
+  const activeLangs = useMemo(() => languages?.length ? languages : [language], [languages, language])
 
   // Load playlists from modules on mount
   useEffect(() => {
-    setLoading(true)
+    let isMounted = true
+    if (loginType === 'user') {
+      getPlaylists(token).then((data) => {
+        if (!isMounted) return
+        const mapped = (data || []).map(playlist => ({
+          id: playlist._id || playlist.id,
+          title: playlist.playlistName || playlist.title || 'Untitled playlist',
+          cover: playlist.songs?.[0]?.albumCover || '',
+          songCount: playlist.songs?.length || 0,
+          language: playlist.privacy || 'private',
+          privacy: playlist.privacy,
+        }))
+        setPlaylists(mapped)
+      }).finally(() => { if (isMounted) setLoading(false) })
+      return () => { isMounted = false }
+    }
+
+    if (loginType === 'guest') {
+      openAuthModal('Login required to manage playlists')
+    }
+
     const apiLangs = activeLangs.map(c => LANGUAGE_MAP[c] || c)
     getModulesMulti(apiLangs).then(results => {
+      if (!isMounted) return
       const all = []
       results.forEach(({ data }) => {
         const found = data?.playlists || data?.charts || []
@@ -42,7 +66,8 @@ export default function Playlists() {
       setPlaylists(all)
       setLoading(false)
     })
-  }, [language])
+    return () => { isMounted = false }
+  }, [activeLangs, loginType, token, openAuthModal])
 
   // Debounced search
   useEffect(() => {
@@ -63,7 +88,7 @@ export default function Playlists() {
       <div className="page-header">
         <Typography variant="h4" className="page-title">🎧 Playlists</Typography>
         <Typography className="page-sub">
-          {query.trim() ? `Results for "${query}"` : `Trending · ${activeLangs.map(c => LANGUAGE_MAP[c] || c).join(', ')}`}
+          {loginType === 'user' ? 'Your saved playlists' : query.trim() ? `Results for "${query}"` : `Trending · ${activeLangs.map(c => LANGUAGE_MAP[c] || c).join(', ')}`}
         </Typography>
       </div>
 

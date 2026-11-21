@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Box, Typography, CircularProgress } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -81,13 +81,14 @@ export default function Artists() {
   const [followers, setFollowers] = useState({}) // id → followerCount
   const debounceRef = useRef(null)
   const fetchedFollowers = useRef(new Set())
-  const activeLangs = languages?.length ? languages : [language]
+  const activeLangs = useMemo(() => languages?.length ? languages : [language], [languages, language])
 
   // ── Load artists from home modules data ──
   useEffect(() => {
-    setLoading(true)
+    let isMounted = true
     const apiLangs = activeLangs.map(c => LANGUAGE_MAP[c] || c)
     getModulesMulti(apiLangs).then(results => {
+      if (!isMounted) return
       const extracted = extractArtistsFromModules(results)
       setArtists(extracted)
       setLoading(false)
@@ -97,13 +98,14 @@ export default function Artists() {
         if (fetchedFollowers.current.has(a.id)) return
         fetchedFollowers.current.add(a.id)
         getArtistById(a.id).then(detail => {
-          if (detail?.followerCount) {
+          if (detail?.followerCount && isMounted) {
             setFollowers(prev => ({ ...prev, [a.id]: detail.followerCount }))
           }
-        }).catch(() => { })
+        }).catch((err) => { console.error(err); })
       })
     })
-  }, [language])
+    return () => { isMounted = false }
+  }, [activeLangs])
 
   // ── Debounced search ──
   useEffect(() => {
@@ -126,7 +128,7 @@ export default function Artists() {
       setArtists(extractArtistsFromModules(results))
       setLoading(false)
     })
-  }, [language])
+  }, [activeLangs])
 
   const isLoading = loading || searching
   const displayArtists = artists

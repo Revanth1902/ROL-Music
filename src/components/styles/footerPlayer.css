@@ -425,24 +425,26 @@
   opacity: 1;
 }
 
-.fs-options-btn {
+.fs-options-btn,
+.fs-topbar .tdm-trigger {
   background: none;
   border: none;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   flex-shrink: 0;
   border-radius: 50%;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
-.fs-options-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+.fs-options-btn:hover,
+.fs-topbar .tdm-trigger:hover {
+  background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
@@ -587,6 +589,13 @@
 .fs-info-text {
   flex: 1;
   min-width: 0;
+}
+
+.fs-info-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .fs-song-title {
@@ -816,9 +825,26 @@
 .fs-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 4px 20px 12px;
+  justify-content: space-around;
+  padding: 4px 16px;
+  width: 100%;
+  box-sizing: border-box;
   flex-shrink: 0;
+}
+
+.fs-controls-row-1 {
+  margin-bottom: 4px;
+}
+
+.fs-controls-row-2 {
+  gap: 4px;
+  padding-bottom: 12px;
+  justify-content: space-evenly;
+}
+
+.fs-controls-row-2 .fs-ctrl-btn {
+  width: 40px;
+  height: 40px;
 }
 
 .fs-ctrl-btn {
@@ -838,7 +864,7 @@
 
 .fs-ctrl-btn:hover {
   color: white;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .fs-ctrl-btn:active {
@@ -846,7 +872,7 @@
 }
 
 .fs-ctrl-btn.active {
-  color: #1db954;
+  color: #ec4899;
 }
 
 .fs-play-btn {
@@ -1395,7 +1421,15 @@
 }
 
 .synced-lyrics-mobile .m-lrc-line.active {
-          color: #a78bfa;
-          font-weight: 700;
-          text-shadow: 0 0 16px rgba(167, 139, 250, 0.4);
-        }
+  color: #a78bfa;
+  font-weight: 700;
+  text-shadow: 0 0 16px rgba(167, 139, 250, 0.4);
+}
+
+/* Ensure MUI Menus, Dialogs, Modals & Popovers sit above Fullscreen Player (z-index 3000) */
+.MuiPopover-root,
+.MuiMenu-root,
+.MuiDialog-root,
+.MuiModal-root {
+  z-index: 99999 !important;
+}

@@ -3,8 +3,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import PauseIcon from '@mui/icons-material/Pause'
 import { useAudioPlayer } from '../../contexts/AudioPlayerContext'
 import { useQueue } from '../../contexts/QueueContext'
-import { getSongById, searchSongs } from '../../api/apiService'
 import ThreeDotMenu from '../ui/ThreeDotMenu'
+import SongActions from '../ui/SongActions'
 import '../../components/styles/songListItem.css'
 
 function fmtDuration(sec) {
@@ -82,8 +82,9 @@ export default function SongListItem({ song, index, songList = [] }) {
                 <span className="sli-dur">{fmtDuration(song.duration)}</span>
             )}
 
-            {/* Menu */}
-            <div onClick={e => e.stopPropagation()}>
+            {/* Actions */}
+            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <SongActions song={song} size="small" />
                 <ThreeDotMenu song={song} songList={songList} />
             </div>
         </div>

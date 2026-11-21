@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { Box, Typography, CircularProgress } from '@mui/material'
 import PlaylistCard from '../components/cards/PlaylistCard'
 import SongListItem from '../components/common/SongListItem'
@@ -17,12 +17,13 @@ export default function Charts() {
   const [charts, setCharts] = useState([])
   const [trendingSongs, setTrendingSongs] = useState([])
   const [loading, setLoading] = useState(true)
-  const activeLangs = languages?.length ? languages : [language]
+  const activeLangs = useMemo(() => languages?.length ? languages : [language], [languages, language])
 
   useEffect(() => {
-    setLoading(true)
+    let isMounted = true
     const apiLangs = activeLangs.map(c => LANGUAGE_MAP[c] || c)
     getModulesMulti(apiLangs).then(results => {
+      if (!isMounted) return
       const allCharts = []
       const allSongs = []
       results.forEach(({ data }) => {
@@ -47,7 +48,8 @@ export default function Charts() {
       setTrendingSongs(allSongs)
       setLoading(false)
     })
-  }, [language])
+    return () => { isMounted = false }
+  }, [activeLangs])
 
   return (
     <Box className="page-container">

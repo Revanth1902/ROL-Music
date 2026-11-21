@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { Box, Typography, CircularProgress } from '@mui/material'
 import AlbumCard from '../components/cards/AlbumCard'
 import { searchAlbums, getModulesMulti, normalizeAlbum, LANGUAGE_MAP } from '../api/apiService'
@@ -13,13 +13,14 @@ export default function Albums() {
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
   const debounceRef = React.useRef(null)
-  const activeLangs = languages?.length ? languages : [language]
+  const activeLangs = useMemo(() => languages?.length ? languages : [language], [languages, language])
 
   // Load trending albums from modules
   useEffect(() => {
-    setLoading(true)
+    let isMounted = true
     const apiLangs = activeLangs.map(c => LANGUAGE_MAP[c] || c)
     getModulesMulti(apiLangs).then(results => {
+      if (!isMounted) return
       const all = []
       results.forEach(({ data }) => {
         const found = data?.trending?.albums || data?.albums?.results || data?.albums || []
@@ -31,12 +32,16 @@ export default function Albums() {
       setAlbums(all)
       setLoading(false)
     })
-  }, [language])
+    return () => { isMounted = false }
+  }, [activeLangs])
 
   // Search debounce
   useEffect(() => {
     clearTimeout(debounceRef.current)
-    if (!query.trim()) { setSearchResults([]); return }
+    if (!query.trim()) {
+      debounceRef.current = setTimeout(() => setSearchResults([]), 0)
+      return
+    }
     debounceRef.current = setTimeout(async () => {
       setSearching(true)
       const result = await searchAlbums(query.trim())

@@ -1,8 +1,12 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { Box, Typography, CircularProgress, Chip } from '@mui/material'
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { Box, Typography, CircularProgress } from '@mui/material'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import ShuffleIcon from '@mui/icons-material/Shuffle'
 import SongListItem from '../components/common/SongListItem'
 import { searchSongs, getModulesMulti, normalizeSong, LANGUAGE_MAP } from '../api/apiService'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useAudioPlayer } from '../contexts/AudioPlayerContext'
+import { useQueue } from '../contexts/QueueContext'
 import { useSearchParams } from 'react-router-dom'
 import '../components/styles/page.css'
 
@@ -19,6 +23,8 @@ const POPULAR_QUERIES = {
 
 export default function Songs() {
   const { languages, language } = useLanguage()
+  const { playSong } = useAudioPlayer()
+  const { playList } = useQueue()
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
   const [query, setQuery] = useState(initialQuery)
@@ -30,14 +36,15 @@ export default function Songs() {
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const debounceRef = useRef(null)
-  const activeLangs = languages?.length ? languages : [language]
+  const activeLangs = useMemo(() => languages?.length ? languages : [language], [languages, language])
   const popularQueries = POPULAR_QUERIES[activeLangs[0]] || POPULAR_QUERIES.en
 
   // Load trending songs from modules for all selected languages on mount
   useEffect(() => {
-    setLoading(true)
+    let isMounted = true
     const apiLangs = activeLangs.map(c => LANGUAGE_MAP[c] || c)
     getModulesMulti(apiLangs).then(results => {
+      if (!isMounted) return
       const all = []
       results.forEach(({ data }) => {
         const trending = data?.trending?.songs || data?.charts || []
@@ -49,7 +56,8 @@ export default function Songs() {
       setTrendingSongs(all)
       setLoading(false)
     })
-  }, [language])
+    return () => { isMounted = false }
+  }, [activeLangs])
 
   // Debounce
   useEffect(() => {
@@ -88,6 +96,16 @@ export default function Songs() {
 
   const displaySongs = debouncedQuery ? songs : trendingSongs
 
+  const handlePlayAll = () => {
+    if (!displaySongs.length) return
+    playList(displaySongs, null, false, playSong)
+  }
+
+  const handlePlayShuffled = () => {
+    if (!displaySongs.length) return
+    playList(displaySongs, null, true, playSong)
+  }
+
   return (
     <Box className="page-container">
       <div className="page-header">
@@ -122,6 +140,18 @@ export default function Songs() {
           {popularQueries.map(q => (
             <button key={q} className="quick-chip" onClick={() => setQuery(q)}>{q}</button>
           ))}
+        </div>
+      )}
+
+      {/* Action buttons (Play All / Shuffle) */}
+      {!loading && displaySongs.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <button className="detail-play-all-btn" onClick={handlePlayAll} style={{ marginTop: 0 }}>
+            <PlayArrowIcon /> Play All
+          </button>
+          <button className="detail-shuffle-btn" onClick={handlePlayShuffled} style={{ marginTop: 0 }}>
+            <ShuffleIcon /> Shuffle
+          </button>
         </div>
       )}
 

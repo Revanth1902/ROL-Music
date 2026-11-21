@@ -76,6 +76,42 @@
   backdrop-filter: blur(4px);
 }
 
+/* Actions overlay on cover image (Gradient fill icons with small shadow) */
+.song-card-actions-overlay {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  z-index: 5;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.song-card-actions-overlay > div,
+.song-card-actions-overlay .MuiBox-root {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center;
+  gap: 2px;
+}
+
+.song-card-actions-overlay .MuiIconButton-root {
+  padding: 4px;
+}
+
+.song-card-actions-overlay .MuiSvgIcon-root {
+  fill: url(#songActionGrad) !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.65));
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.song-card-actions-overlay .MuiIconButton-root:hover .MuiSvgIcon-root {
+  transform: scale(1.18);
+  filter: drop-shadow(0 2px 6px rgba(0, 229, 255, 0.65)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+
 /* Playing bar */
 .song-card-playing-bar {
   position: absolute;

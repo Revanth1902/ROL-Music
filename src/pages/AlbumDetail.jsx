@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Skeleton, Divider, CircularProgress } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import ShuffleIcon from '@mui/icons-material/Shuffle'
 import { getAlbumById, getSongsByIds } from '../api/apiService'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
 import { useQueue } from '../contexts/QueueContext'
@@ -17,7 +18,7 @@ export default function AlbumDetail() {
     const [loading, setLoading] = useState(true)
     const [resolving, setResolving] = useState(false)
     const { playSong } = useAudioPlayer()
-    const { setQueue } = useQueue()
+    const { playList } = useQueue()
     const [scrolled, setScrolled] = useState(false)
 
     useEffect(() => {
@@ -41,10 +42,10 @@ export default function AlbumDetail() {
 
     useEffect(() => {
         if (!id) return
-        setLoading(true)
-        setSongs([])
+        let isMounted = true
 
         getAlbumById(id).then(async a => {
+            if (!isMounted) return
             if (!a) { setLoading(false); return }
             setAlbum(a)
             setLoading(false)
@@ -79,9 +80,13 @@ export default function AlbumDetail() {
 
     const playAll = useCallback(() => {
         if (!songs.length) return
-        playSong(songs[0])
-        setQueue(songs.slice(1))
-    }, [songs, playSong, setQueue])
+        playList(songs, null, false, playSong)
+    }, [songs, playSong, playList])
+
+    const playShuffled = useCallback(() => {
+        if (!songs.length) return
+        playList(songs, null, true, playSong)
+    }, [songs, playSong, playList])
 
     if (loading) return (
         <Box className="detail-page">
@@ -131,6 +136,10 @@ export default function AlbumDetail() {
                         <button className="detail-play-all-btn" onClick={playAll}
                             disabled={resolving && songs.every(s => !s.src)}>
                             <PlayArrowIcon /> Play All
+                        </button>
+                        <button className="detail-shuffle-btn" onClick={playShuffled}
+                            disabled={resolving && songs.every(s => !s.src)}>
+                            <ShuffleIcon /> Shuffle
                         </button>
                         {resolving && (
                             <span style={{

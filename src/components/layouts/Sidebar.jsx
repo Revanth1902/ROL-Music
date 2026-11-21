@@ -8,22 +8,33 @@ import QueueMusicIcon from '@mui/icons-material/QueueMusic'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import SettingsIcon from '@mui/icons-material/Settings'
 import HomeIcon from '@mui/icons-material/Home';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import HistoryIcon from '@mui/icons-material/History';
+import EqualizerIcon from '@mui/icons-material/Equalizer';
+import { useAuth } from '../../contexts/AuthContext';
 
 import '../styles/sidebar.css'
 
-const items = [
- { to: '/home', label: 'Home', icon: <HomeIcon /> },
-  { to: '/songs', label: 'Songs', icon: <MusicNoteIcon /> },
-  { to: '/albums', label: 'Albums', icon: <AlbumIcon /> },
-  { to: '/artists', label: 'Artists', icon: <PeopleIcon /> },
-  { to: '/playlists', label: 'Playlists', icon: <QueueMusicIcon /> },
-  { to: '/charts', label: 'Charts', icon: <BarChartIcon /> },
-  { to: '/settings', label: 'Settings', icon: <SettingsIcon /> }
-]
-
-export default function Sidebar({ variant = 'permanent', open = true, onClose }) {
+export default function Sidebar({ open = true, onClose }) {
   const isMobile = useMediaQuery('(max-width:768px)')
-  const location = useLocation() // to highlight active link
+  const location = useLocation()
+  const { loginType } = useAuth()
+
+  const items = [
+    { to: '/home', label: 'Home', icon: <HomeIcon /> },
+    { to: '/songs', label: 'Search', icon: <MusicNoteIcon /> },
+    { to: '/albums', label: 'Albums', icon: <AlbumIcon /> },
+    { to: '/artists', label: 'Artists', icon: <PeopleIcon /> },
+    { to: '/charts', label: 'Charts', icon: <BarChartIcon /> },
+    { to: '/stats', label: 'Insights', icon: <EqualizerIcon /> },
+    { to: '/settings', label: 'Settings', icon: <SettingsIcon /> },
+  ]
+
+  if (loginType === 'user') {
+    items.splice(4, 0, { to: '/playlists', label: 'Playlists', icon: <QueueMusicIcon /> })
+    items.splice(4, 0, { to: '/recently-played', label: 'Recently Played', icon: <HistoryIcon /> })
+    items.splice(4, 0, { to: '/favourites', label: 'Favourites', icon: <FavoriteIcon /> })
+  }
 
   const sidebarContent = (
     <div className={`sidebar ${isMobile && open ? 'open' : ''}`}>

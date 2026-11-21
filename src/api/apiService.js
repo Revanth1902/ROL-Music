@@ -11,7 +11,7 @@
  */
 
 const SONG_BASE = 'https://jiosavvan.vercel.app';
-const BACKEND_BASE = 'https://rol-backend.onrender.com/api';
+const MUSIC_CATALOG_BASE = 'https://rol-backend.onrender.com/api';
 const SEARCH_BASE = 'https://saavn.sumit.co/api';
 
 // ── HTML entity decoder ────────────────────────────────
@@ -69,7 +69,7 @@ async function backendFetch(path) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3500); // Fail fast if Render backend is sleeping
     try {
-        const res = await fetch(`${BACKEND_BASE}${path}`, { signal: controller.signal });
+        const res = await fetch(`${MUSIC_CATALOG_BASE}${path}`, { signal: controller.signal });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
@@ -246,6 +246,20 @@ export async function getModulesMulti(languages = ['hindi']) {
     return results.filter(r => r.data !== null);
 }
 
+export async function getTrendingSongs(language = 'hindi') {
+    try {
+        const modules = await getModules(language);
+        const rawSongs = modules?.trending?.songs || [];
+        const songs = rawSongs.map(normalizeSong).filter(Boolean);
+        if (songs.length > 0) return songs;
+        const searchRes = await searchSongs('trending Hindi songs', 0, 20);
+        return searchRes?.results || [];
+    } catch {
+        const searchRes = await searchSongs('top songs', 0, 20);
+        return searchRes?.results || [];
+    }
+}
+
 // ── ALBUM ──────────────────────────────────────────────
 // Layer 1: backend (rol-backend) — has richer data for most IDs
 // Layer 2: jiosavvan /albums?id= — handles "i-XXXXX" style IDs from modules
@@ -296,7 +310,24 @@ export async function getAlbumById(id) {
 export async function getArtistById(artistId) {
     if (!artistId) return null;
     const data = await backendFetch(`/artists/${artistId}`);
-    return normalizeArtist(data);
+    if (data) {
+        const artist = normalizeArtist(data);
+        if (artist?.id) return artist;
+    }
+
+    // Fallback: query JioSaavn directly
+    try {
+        const res = await fetch(`${SONG_BASE}/artists?id=${encodeURIComponent(artistId)}`);
+        if (res.ok) {
+            const json = await res.json();
+            const raw = json?.data ?? json;
+            if (raw?.id) return normalizeArtist(raw);
+        }
+    } catch (err) {
+        console.warn('[getArtistById fallback error]', err.message);
+    }
+
+    return null;
 }
 
 // GET https://rol-backend.onrender.com/api/artists/{artistId}/songs?page={page}
@@ -304,10 +335,26 @@ export async function getArtistById(artistId) {
 export async function getArtistSongs(artistId, page = 1) {
     if (!artistId) return [];
     const data = await backendFetch(`/artists/${artistId}/songs?page=${page}`);
-    if (!data) return [];
-    // data is { total, songs: [...] }
-    const songs = data.songs || data.results || (Array.isArray(data) ? data : []);
-    return songs.map(normalizeSong).filter(Boolean);
+    if (data) {
+        const songs = data.songs || data.results || (Array.isArray(data) ? data : []);
+        const normalized = songs.map(normalizeSong).filter(Boolean);
+        if (normalized.length > 0) return normalized;
+    }
+
+    // Fallback: query JioSaavn directly
+    try {
+        const res = await fetch(`${SONG_BASE}/artists/${encodeURIComponent(artistId)}/songs?page=${page}`);
+        if (res.ok) {
+            const json = await res.json();
+            const raw = json?.data ?? json;
+            const songs = raw?.songs || raw?.results || (Array.isArray(raw) ? raw : []);
+            return songs.map(normalizeSong).filter(Boolean);
+        }
+    } catch (err) {
+        console.warn('[getArtistSongs fallback error]', err.message);
+    }
+
+    return [];
 }
 
 export async function getAllArtistSongs(artistId, maxPages = 10) {
@@ -325,7 +372,24 @@ export async function getAllArtistSongs(artistId, maxPages = 10) {
 export async function getPlaylistById(id, page = 1) {
     if (!id) return null;
     const data = await backendFetch(`/playlists?id=${id}&page=${page}`);
-    return normalizePlaylist(data);
+    if (data) {
+        const pl = normalizePlaylist(data);
+        if (pl?.id) return pl;
+    }
+
+    // Fallback: query JioSaavn directly
+    try {
+        const res = await fetch(`${SONG_BASE}/playlists?id=${encodeURIComponent(id)}&page=${page}`);
+        if (res.ok) {
+            const json = await res.json();
+            const raw = json?.data ?? json;
+            if (raw?.id) return normalizePlaylist(raw);
+        }
+    } catch (err) {
+        console.warn('[getPlaylistById fallback error]', err.message);
+    }
+
+    return null;
 }
 
 export async function getAllPlaylistSongs(id, maxPages = 20) {
@@ -410,3 +474,178 @@ export const LANGUAGES = [
     { code: 'bh', label: 'Bhojpuri', native: 'भोजपुरी', flag: '🏳️' },
     { code: 'ur', label: 'Urdu', native: 'اردو', flag: '🏳️' },
 ];
+
+// ── SPOTIFY-GRADE RELATED ARTISTS MATRIX ────────────────
+const RELATED_ARTISTS_MAP = {
+  // Hindi / Bollywood
+  'arijit singh': ['Pritam', 'Atif Aslam', 'Mohit Chauhan', 'Jubin Nautiyal', 'B Praak', 'Armaan Malik', 'Shreya Ghoshal', 'Sachin-Jigar'],
+  'pritam': ['Arijit Singh', 'Vishal-Shekhar', 'Amit Trivedi', 'Sachin-Jigar', 'Shankar-Ehsaan-Loy', 'Mithoon', 'KK'],
+  'atif aslam': ['Arijit Singh', 'Rahat Fateh Ali Khan', 'Mustafa Zahid', 'Ankit Tiwari', 'KK', 'Mohit Chauhan'],
+  'jubin nautiyal': ['Arijit Singh', 'B Praak', 'Sachet Tandon', 'Tulsi Kumar', 'Armaan Malik'],
+  'b praak': ['Jaani', 'Jubin Nautiyal', 'Arijit Singh', 'Guru Randhawa', 'Harrdy Sandhu'],
+  'shreya ghoshal': ['Sunidhi Chauhan', 'Alka Yagnik', 'Shaan', 'Sonu Nigam', 'Arijit Singh'],
+  'sonu nigam': ['Shaan', 'Udit Narayan', 'Kumar Sanu', 'Alka Yagnik', 'Shreya Ghoshal', 'A.R. Rahman'],
+  'a.r. rahman': ['Arijit Singh', 'Shankar-Ehsaan-Loy', 'Amit Trivedi', 'Mohit Chauhan', 'Harris Jayaraj'],
+  'badshah': ['Yo Yo Honey Singh', 'Raftaar', 'Guru Randhawa', 'Divine', 'King', 'MC Stan'],
+  'king': ['Anuv Jain', 'Zaeden', 'Mitraz', 'Ritviz', 'Jasleen Royal', 'Kaka'],
+  'anuv jain': ['Zaeden', 'King', 'Prateek Kuhad', 'When Chai Met Toast', 'Mitraz', 'The Local Train'],
+  'prateek kuhad': ['Anuv Jain', 'When Chai Met Toast', 'The Local Train', 'Lifafa'],
+
+  // English / Western / Pop / Hip-Hop
+  'the weeknd': ['Drake', 'Post Malone', 'Travis Scott', 'Frank Ocean', 'Lana Del Rey', 'Kendrick Lamar', 'Dua Lipa'],
+  'taylor swift': ['Olivia Rodrigo', 'Gracie Abrams', 'Sabrina Carpenter', 'Billie Eilish', 'Ed Sheeran', 'Lorde'],
+  'drake': ['Travis Scott', '21 Savage', 'Future', 'The Weeknd', 'J. Cole', 'Kendrick Lamar', 'Kanye West'],
+  'travis scott': ['Drake', 'Don Toliver', 'Playboi Carti', 'Metro Boomin', 'Future', '21 Savage'],
+  'post malone': ['The Weeknd', 'Juice WRLD', 'Swae Lee', 'Drake', 'Twenty One Pilots', 'Khalid'],
+  'dua lipa': ['Ariana Grande', 'Katy Perry', 'Ava Max', 'Billie Eilish', 'Bebe Rexha', 'Doja Cat'],
+  'billie eilish': ['Olivia Rodrigo', 'Finneas', 'Lana Del Rey', 'Girl in Red', 'Lorde', 'Phoebe Bridgers'],
+  'ed sheeran': ['Shawn Mendes', 'Charlie Puth', 'Justin Bieber', 'James Arthur', 'Lewis Capaldi', 'OneRepublic'],
+  'coldplay': ['Imagine Dragons', 'OneRepublic', 'Maroon 5', 'The Chainsmokers', 'Bastille'],
+  'imagine dragons': ['Coldplay', 'OneRepublic', 'Fall Out Boy', 'Panic! At The Disco', 'Twenty One Pilots'],
+
+  // Punjabi
+  'sidhu moose wala': ['Karan Aujla', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'Amrit Maan', 'Parmish Verma'],
+  'karan aujla': ['Sidhu Moose Wala', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'Jordan Sandhu'],
+  'ap dhillon': ['Gurinder Gill', 'Shubh', 'Diljit Dosanjh', 'Karan Aujla', 'Intense'],
+  'diljit dosanjh': ['Amrinder Gill', 'Gippy Grewal', 'Guru Randhawa', 'Garry Sandhu'],
+
+  // South Indian (Telugu / Tamil / Kannada / Malayalam)
+  'sid sriram': ['Armaan Malik', 'Anurag Kulkarni', 'Ram Miriyala', 'Hesham Abdul Wahab', 'Anirudh Ravichander'],
+  'anirudh ravichander': ['Devi Sri Prasad', 'Thaman S', 'G.V. Prakash Kumar', 'Harris Jayaraj', 'Santhosh Narayanan'],
+  'devi sri prasad': ['Thaman S', 'Anirudh Ravichander', 'Mani Sharma', 'M.M. Keeravaani'],
+  'thaman s': ['Devi Sri Prasad', 'Anirudh Ravichander', 'Mani Sharma', 'M.M. Keeravaani'],
+};
+
+// ── SONG FINGERPRINTING & DEDUPLICATION ─────────────────
+export function getSongFingerprint(song) {
+    if (!song) return '';
+    const cleanTitle = (song.title || song.name || '')
+        .toLowerCase()
+        .replace(/\(.*?\)|\[.*?\]|-.*$/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+
+    const primaryArtist = (song.artistName || song.artist || '')
+        .toLowerCase()
+        .split(',')[0]
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+
+    return cleanTitle ? `${cleanTitle}|${primaryArtist}` : '';
+}
+
+// ── SPOTIFY-GRADE AUTOPLAY RECOMMENDATIONS ENGINE ───────
+export async function getAutoplayRecommendations(currentSong, excludedIds = [], limit = 15) {
+    if (!currentSong) return [];
+
+    const excludedSet = new Set((excludedIds || []).map(id => String(id)));
+    const addedIds = new Set();
+    const addedFingerprints = new Set();
+
+    if (currentSong.id) excludedSet.add(String(currentSong.id));
+    const currentFp = getSongFingerprint(currentSong);
+    if (currentFp) addedFingerprints.add(currentFp);
+
+    const recommendedSongs = [];
+
+    const addSong = (song) => {
+        if (!song || !song.id || !song.title) return false;
+        const sId = String(song.id);
+        const fp = getSongFingerprint(song);
+
+        // Strict Deduplication: ID AND Fingerprint (Title + Primary Artist)
+        if (excludedSet.has(sId) || addedIds.has(sId) || (fp && addedFingerprints.has(fp))) {
+            return false;
+        }
+
+        addedIds.add(sId);
+        if (fp) addedFingerprints.add(fp);
+
+        recommendedSongs.push({
+            ...song,
+            isAutoplayItem: true,
+            radioSeedSong: currentSong.title,
+        });
+        return true;
+    };
+
+    // 1. Primary Artist parsing
+    const rawArtist = currentSong.artistName || currentSong.artist || '';
+    const artistList = rawArtist.split(',').map(a => a.trim()).filter(Boolean);
+    const mainArtist = artistList[0] || 'Unknown Artist';
+    const mainArtistLower = mainArtist.toLowerCase();
+
+    // 2. Look up related artists from matrix or fallback
+    let relatedArtists = RELATED_ARTISTS_MAP[mainArtistLower];
+    if (!relatedArtists || relatedArtists.length === 0) {
+        relatedArtists = artistList.slice(1);
+    }
+
+    // Always include main artist for seed pool
+    const artistQueryPool = [mainArtist, ...(relatedArtists || [])].slice(0, 6);
+
+    // 3. Parallel fetch of songs across related artists
+    try {
+        const fetchResults = await Promise.all(
+            artistQueryPool.map(async (art) => {
+                try {
+                    const res = await searchSongs(art, 0, 10);
+                    return res?.results || [];
+                } catch {
+                    return [];
+                }
+            })
+        );
+
+        // Interleave songs for balanced Spotify Radio sequence (1 from each artist per round)
+        let maxSongsPerArtist = Math.max(0, ...fetchResults.map(r => r.length));
+        for (let round = 0; round < maxSongsPerArtist; round++) {
+            for (let i = 0; i < fetchResults.length; i++) {
+                const song = fetchResults[i][round];
+                if (song) addSong(song);
+                if (recommendedSongs.length >= limit) break;
+            }
+            if (recommendedSongs.length >= limit) break;
+        }
+    } catch (err) {
+        console.warn('[SpotifyRadio Engine] parallel fetch error:', err.message);
+    }
+
+    // 4. Album matching fallback if pool is still small
+    if (recommendedSongs.length < limit && (currentSong.albumId || currentSong.album)) {
+        try {
+            if (currentSong.albumId) {
+                const album = await getAlbumById(currentSong.albumId);
+                if (album?.songs) {
+                    album.songs.forEach(addSong);
+                }
+            }
+            if (recommendedSongs.length < limit && currentSong.album) {
+                const albumResult = await searchSongs(currentSong.album, 0, 10);
+                if (albumResult?.results) {
+                    albumResult.results.forEach(addSong);
+                }
+            }
+        } catch (err) {
+            console.warn('[SpotifyRadio Engine] Album fallback error:', err.message);
+        }
+    }
+
+    // 5. Language discovery fallback if pool is under limit
+    if (recommendedSongs.length < limit) {
+        try {
+            const lang = (currentSong.language || 'hindi').toLowerCase();
+            const mappedLang = LANGUAGE_MAP[lang] || lang || 'hindi';
+            const langResult = await searchSongs(mappedLang, 0, 15);
+            if (langResult?.results) {
+                langResult.results.forEach(addSong);
+            }
+        } catch (err) {
+            console.warn('[SpotifyRadio Engine] Language fallback error:', err.message);
+        }
+    }
+
+    return recommendedSongs.slice(0, limit);
+}
+
+

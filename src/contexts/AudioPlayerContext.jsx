@@ -1,5 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useQueue } from "./QueueContext";
+import { useAuth } from "./AuthContext";
+import { createSong, trackSongPlay } from "../api/authApi";
+
+import { trackUserPlay } from "../utils/userTracker";
 
 const AudioPlayerContext = createContext();
 
@@ -11,15 +16,23 @@ export const AudioPlayerProvider = ({ children }) => {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loop, setLoop] = useState(false);
-  const { queue, setQueue } = useQueue();
+  const { queue, setQueue, isAutoPlay, playedHistory, addPlayedId } = useQueue();
+  const prefetchingRef = useRef(false);
 
-  // Web Audio graph — created ONCE and reused for all songs
+  // Advanced Web Audio graph nodes
   const audioCtxRef = useRef(null);
-  const sourceRef = useRef(null);   // MediaElementSource (only created once)
+  const sourceRef = useRef(null);
   const gainNode = useRef(null);
+  const analyserRef = useRef(null);
+  const stereoPannerRef = useRef(null);
+  const vocalFilterRef = useRef(null);
   const convolver = useRef(null);
   const eqBandsRef = useRef([]);
-  const graphReady = useRef(false);  // guard: only init graph once
+  const graphReady = useRef(false);
+
+  const [isKaraoke, setIsKaraoke] = useState(false);
+  const [pannerVal, setPannerValState] = useState(0); // -1.0 to +1.0
+  const [crossfadeTime, setCrossfadeTime] = useState(2); // 0 to 12 sec
 
   const EQ_FREQUENCIES = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000];
 
@@ -44,6 +57,50 @@ export const AudioPlayerProvider = ({ children }) => {
 
   const [effects, setEffects] = useState({ hall: false });
   const [eqValues, setEqValues] = useState(EQ_PRESETS.Flat);
+  const { user, loginType, token } = useAuth();
+
+  const prefetchRecommendationsIfNeeded = async (targetSong, currentQueue = queue) => {
+    if (!isAutoPlay || !targetSong || currentQueue.length > 1 || prefetchingRef.current) return;
+
+    prefetchingRef.current = true;
+    try {
+      const { getAutoplayRecommendations, getSongFingerprint } = await import('../api/apiService');
+      const excluded = [...playedHistory, targetSong.id, ...currentQueue.map(s => s.id)];
+      const recs = await getAutoplayRecommendations(targetSong, excluded, 15);
+      if (recs && recs.length > 0) {
+        setQueue(prev => {
+          const existingIds = new Set(prev.map(s => String(s.id)));
+          const existingFps = new Set(prev.map(s => getSongFingerprint(s)).filter(Boolean));
+          if (targetSong.id) existingIds.add(String(targetSong.id));
+          const targetFp = getSongFingerprint(targetSong);
+          if (targetFp) existingFps.add(targetFp);
+
+          const newItems = recs.filter(s => {
+            const sId = String(s.id);
+            const fp = getSongFingerprint(s);
+            if (existingIds.has(sId) || (fp && existingFps.has(fp))) return false;
+            existingIds.add(sId);
+            if (fp) existingFps.add(fp);
+            return true;
+          });
+
+          return [...prev, ...newItems];
+        });
+      }
+    } catch (err) {
+      console.warn('[prefetchRecommendations] error:', err.message);
+    } finally {
+      prefetchingRef.current = false;
+    }
+  };
+
+  // Pre-fetch recommendations when playing song with small queue
+  useEffect(() => {
+    if (playing && current && isAutoPlay && queue.length <= 1) {
+      prefetchRecommendationsIfNeeded(current, queue);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id, queue.length, isAutoPlay, playing]);
 
   // ── Audio events ──────────────────────────────────────────
   useEffect(() => {
@@ -52,12 +109,34 @@ export const AudioPlayerProvider = ({ children }) => {
 
     const onTime = () => setProgress(audio.currentTime);
     const onLoaded = () => setDuration(audio.duration || 0);
-    const onEnd = () => {
+    const onEnd = async () => {
       if (loop) { audio.currentTime = 0; audio.play(); return; }
       if (queue.length > 0) {
         const next = queue[0];
-        setQueue(queue.slice(1));
+        const remaining = queue.slice(1);
+        setQueue(remaining);
         playSong(next);
+        if (remaining.length <= 1 && isAutoPlay) {
+          prefetchRecommendationsIfNeeded(next, remaining);
+        }
+      } else if (isAutoPlay && current) {
+        setAudioLoading(true);
+        try {
+          const { getAutoplayRecommendations } = await import('../api/apiService');
+          const recs = await getAutoplayRecommendations(current, playedHistory, 10);
+          if (recs && recs.length > 0) {
+            const next = recs[0];
+            setQueue(recs.slice(1));
+            playSong(next);
+          } else {
+            setPlaying(false);
+            setAudioLoading(false);
+          }
+        } catch (err) {
+          console.error('[Autoplay onEnd error]', err);
+          setPlaying(false);
+          setAudioLoading(false);
+        }
       } else {
         setPlaying(false);
       }
@@ -82,13 +161,12 @@ export const AudioPlayerProvider = ({ children }) => {
       audio.removeEventListener("canplay", onCanPlay);
       audio.removeEventListener("playing", onPlaying);
     };
-  }, [loop, queue, setQueue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loop, queue, setQueue, isAutoPlay, current, playedHistory]);
 
-  // ── Init Web Audio Graph — called ONCE ────────────────────
-  // We must never call ctx.createMediaElementSource(audio) twice for the
-  // same <audio> element — it throws InvalidStateError and breaks playback.
+  // ── Init Web Audio Graph ──────────────────────────────────
   const initAudioGraph = () => {
-    if (graphReady.current) return;   // already set up — skip entirely
+    if (graphReady.current) return;
 
     try {
       if (!audioCtxRef.current) {
@@ -100,6 +178,23 @@ export const AudioPlayerProvider = ({ children }) => {
       sourceRef.current = ctx.createMediaElementSource(audio);
       gainNode.current = ctx.createGain();
 
+      // Analyser Node for Visualizer
+      analyserRef.current = ctx.createAnalyser();
+      analyserRef.current.fftSize = 128;
+
+      // Stereo Panner Node for 3D Sound
+      if (ctx.createStereoPanner) {
+        stereoPannerRef.current = ctx.createStereoPanner();
+        stereoPannerRef.current.pan.value = pannerVal;
+      }
+
+      // Karaoke Center-Vocal Notch Filter
+      vocalFilterRef.current = ctx.createBiquadFilter();
+      vocalFilterRef.current.type = "notch";
+      vocalFilterRef.current.frequency.value = 1000;
+      vocalFilterRef.current.Q.value = 0.5;
+      vocalFilterRef.current.gain.value = isKaraoke ? -24 : 0;
+
       // EQ filters
       eqBandsRef.current = EQ_FREQUENCIES.map((freq, i) => {
         const filter = ctx.createBiquadFilter();
@@ -110,13 +205,24 @@ export const AudioPlayerProvider = ({ children }) => {
         return filter;
       });
 
-      // Convolver (hall reverb) — optional
+      // Convolver (hall reverb)
       convolver.current = ctx.createConvolver();
 
-      // Connect: source → EQ chain → gain → destination
+      // Connect Chain: source → vocalFilter → EQ chain → panner → gain → analyser → destination
       let chain = sourceRef.current;
+      chain.connect(vocalFilterRef.current);
+      chain = vocalFilterRef.current;
+
       eqBandsRef.current.forEach(f => { chain.connect(f); chain = f; });
-      chain.connect(gainNode.current).connect(ctx.destination);
+
+      if (stereoPannerRef.current) {
+        chain.connect(stereoPannerRef.current);
+        chain = stereoPannerRef.current;
+      }
+
+      chain.connect(gainNode.current);
+      gainNode.current.connect(analyserRef.current);
+      analyserRef.current.connect(ctx.destination);
 
       graphReady.current = true;
     } catch (err) {
@@ -127,17 +233,47 @@ export const AudioPlayerProvider = ({ children }) => {
   // Resume suspended AudioContext (needed after user gesture)
   const resumeContext = async () => {
     if (audioCtxRef.current?.state === "suspended") {
-      try { await audioCtxRef.current.resume(); } catch { }
+      try { await audioCtxRef.current.resume(); } catch (err) { console.error(err); }
     }
   };
 
   // ── playSong ──────────────────────────────────────────────
   // Safe to call any number of times with different songs. Automatically resolves URLs.
+  const syncPlayback = async (songToTrack) => {
+    if (loginType !== 'user' || !songToTrack) return;
+    const targetId = songToTrack.id || songToTrack.sourceId || songToTrack._id;
+    if (!targetId) return;
+
+    try {
+      const payload = {
+        sourceId: String(targetId),
+        title: songToTrack.title || 'Untitled',
+        artist: songToTrack.artistName || songToTrack.artist || 'Unknown Artist',
+        album: songToTrack.album || '',
+        albumCover: songToTrack.cover || songToTrack.albumCover || '',
+        duration: Number(songToTrack.duration) || 0,
+        genre: songToTrack.genre || '',
+        audioUrl: songToTrack.src || songToTrack.audioUrl || '',
+        releaseDate: songToTrack.year ? `${songToTrack.year}-01-01` : undefined,
+      };
+
+      await createSong(payload, token);
+      await trackSongPlay(targetId, token);
+    } catch (err) {
+      console.warn('[playback] sync failed:', err.message);
+    }
+  };
+
   const playSong = async (rawSong) => {
     if (!rawSong) return;
 
     // Assume it might need resolving
     let song = rawSong;
+    const songId = song.id || song.sourceId || song._id;
+    if (songId) {
+      addPlayedId(songId);
+      if (!song.id) song = { ...song, id: songId };
+    }
 
     // Optional: show loading state on the UI immediately
     setCurrent(song);
@@ -189,6 +325,8 @@ export const AudioPlayerProvider = ({ children }) => {
     try {
       await audio.play();
       setPlaying(true);
+      await syncPlayback(song);
+      trackUserPlay(user?.id || user?._id || 'guest', song);
     } catch (err) {
       console.warn("[playSong] play() failed:", err.message);
       setPlaying(false);
@@ -207,7 +345,7 @@ export const AudioPlayerProvider = ({ children }) => {
       audio.pause();
       setPlaying(false);
     } else {
-      try { await audio.play(); setPlaying(true); } catch { }
+      try { await audio.play(); setPlaying(true); } catch (err) { console.error(err); }
     }
   };
 
@@ -217,6 +355,25 @@ export const AudioPlayerProvider = ({ children }) => {
   };
 
   const toggleLoop = () => setLoop(l => !l);
+
+  // ── Audio Controls & Effects ─────────────────────────────
+  const toggleKaraoke = () => {
+    setIsKaraoke(prev => {
+      const next = !prev;
+      if (vocalFilterRef.current) {
+        vocalFilterRef.current.gain.value = next ? -24 : 0;
+      }
+      return next;
+    });
+  };
+
+  const setPannerVal = (val) => {
+    const clamped = Math.max(-1, Math.min(1, val));
+    setPannerValState(clamped);
+    if (stereoPannerRef.current) {
+      stereoPannerRef.current.pan.value = clamped;
+    }
+  };
 
   // ── EQ ────────────────────────────────────────────────────
   const setEqBand = (index, value) => {
@@ -242,11 +399,39 @@ export const AudioPlayerProvider = ({ children }) => {
     initAudioGraph();
   };
 
+  const [volume, setVolumeState] = useState(() => {
+    const saved = localStorage.getItem('rol_volume');
+    return saved !== null ? Number(saved) : 1;
+  });
+  const [isMuted, setIsMuted] = useState(false);
+
+  const setVolume = (val) => {
+    const v = Math.max(0, Math.min(1, val));
+    setVolumeState(v);
+    localStorage.setItem('rol_volume', String(v));
+    if (gainNode.current) gainNode.current.gain.value = isMuted ? 0 : v;
+    if (audioRef.current) audioRef.current.volume = isMuted ? 0 : v;
+  };
+
+  const toggleMute = () => {
+    setIsMuted(prev => {
+      const next = !prev;
+      if (gainNode.current) gainNode.current.gain.value = next ? 0 : volume;
+      if (audioRef.current) audioRef.current.volume = next ? 0 : volume;
+      return next;
+    });
+  };
+
   return (
     <AudioPlayerContext.Provider value={{
       audioRef, current, playing, audioLoading, playSong, togglePlay, progress, duration, seek,
       loop, toggleLoop, effects, setHall,
       eqValues, setEqBand, setEqPreset, resetEQ,
+      volume, setVolume, isMuted, toggleMute,
+      analyserNode: analyserRef.current,
+      isKaraoke, toggleKaraoke,
+      pannerVal, setPannerVal,
+      crossfadeTime, setCrossfadeTime,
     }}>
       {children}
     </AudioPlayerContext.Provider>

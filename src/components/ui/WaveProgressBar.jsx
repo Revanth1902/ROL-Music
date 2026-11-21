@@ -21,7 +21,7 @@ export default function WaveProgressBar({ progress, duration, onSeek }) {
             suppressNext.current = false;
             return;
         }
-        setLocal(progress);
+        requestAnimationFrame(() => setLocal(progress));
     }, [progress]);
 
     const handleChange = (e) => {

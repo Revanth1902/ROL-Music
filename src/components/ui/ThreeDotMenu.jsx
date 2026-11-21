@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Menu, MenuItem } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { useQueue } from '../../contexts/QueueContext'
-import { useAudioPlayer } from '../../contexts/AudioPlayerContext'
 import { getSongById, searchSongs } from '../../api/apiService'
 import { shareSong } from '../../utils/share'
 
@@ -25,15 +24,16 @@ async function resolveSong(song) {
     const result = await searchSongs(`${song.title} ${song.artistName}`, 0, 5)
     const match = result.results?.find(s => s.id === song.id) || result.results?.[0]
     if (match?.src) return { ...song, ...match }
-  } catch { }
+  } catch (err) {
+    console.error(err);
+  }
   return song
 }
 
-export default function ThreeDotMenu({ song, songList = [] }) {
+export default function ThreeDotMenu({ song }) {
   const [anchor, setAnchor] = useState(null)
   const [loading, setLoading] = useState(false)
-  const { addToQueue, addNext, setQueue } = useQueue()
-  const { playSong } = useAudioPlayer()
+  const { addToQueue, addNext } = useQueue()
 
   const close = () => setAnchor(null)
 
@@ -111,6 +111,8 @@ export default function ThreeDotMenu({ song, songList = [] }) {
         onClose={close}
         onClick={e => e.stopPropagation()}
         PaperProps={{ sx: menuSx }}
+        PopoverProps={{ style: { zIndex: 99999 } }}
+        sx={{ zIndex: 99999 }}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >

@@ -231,6 +231,33 @@
     box-shadow: 0 10px 28px rgba(108, 99, 255, 0.45);
 }
 
+/* Shuffle button */
+.detail-shuffle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 10px 24px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 30px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    align-self: flex-start;
+    transition: all 0.22s ease;
+    backdrop-filter: blur(8px);
+}
+
+.detail-shuffle-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(0, 229, 255, 0.4);
+    color: #00e5ff;
+    transform: scale(1.04);
+    box-shadow: 0 6px 20px rgba(0, 229, 255, 0.2);
+}
+
 /* Load More button */
 .detail-load-more-btn {
     display: inline-flex;

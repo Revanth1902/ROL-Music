@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Box, Skeleton } from '@mui/material'
 import SongCard from '../components/cards/SongCard'
 import AlbumCard from '../components/cards/AlbumCard'
 import PlaylistCard from '../components/cards/PlaylistCard'
 import {
-  getModulesMulti, normalizeSong, normalizeAlbum, normalizePlaylist,
+  getModulesMulti, normalizeSong,
   decodeEntities, LANGUAGE_MAP, LANGUAGES
 } from '../api/apiService'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -185,27 +185,41 @@ function LangBlock({ langCode, data }) {
 // ───────────────────────────────────────────────
 // MAIN HOME COMPONENT
 // ───────────────────────────────────────────────
+import { useAuth } from '../contexts/AuthContext'
+import { getPersonalizedMix } from '../utils/personalizedService'
+import { MdAutoAwesome } from 'react-icons/md'
+
 export default function Home() {
   const { languages, toggleLanguage } = useLanguage()
+  const { user, loginType } = useAuth()
   const [modulesByLang, setModulesByLang] = useState({})
+  const [personalizedMix, setPersonalizedMix] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const apiLanguages = languages.map(code => LANGUAGE_MAP[code] || code)
+  useEffect(() => {
+    let isMounted = true
+    const userId = user?.id || user?._id || 'guest'
 
-  const fetchData = useCallback(async () => {
-    if (!apiLanguages.length) return
-    setLoading(true)
-    const results = await getModulesMulti(apiLanguages)
-    const map = {}
-    results.forEach(({ language, data }) => {
-      const code = languages.find(c => (LANGUAGE_MAP[c] || c) === language) || language
-      map[code] = data
+    getPersonalizedMix(userId, 15).then(mix => {
+      if (isMounted && mix && mix.length > 0) {
+        setPersonalizedMix(mix)
+      }
+    }).catch(console.error)
+
+    const apiLangs = languages.map(code => LANGUAGE_MAP[code] || code)
+    if (!apiLangs.length) return
+    getModulesMulti(apiLangs).then(results => {
+      if (!isMounted) return
+      const map = {}
+      results.forEach(({ language: lang, data }) => {
+        const code = languages.find(c => (LANGUAGE_MAP[c] || c) === lang) || lang
+        map[code] = data
+      })
+      setModulesByLang(map)
+      setLoading(false)
     })
-    setModulesByLang(map)
-    setLoading(false)
-  }, [JSON.stringify(apiLanguages)])
-
-  useEffect(() => { fetchData() }, [fetchData])
+    return () => { isMounted = false }
+  }, [languages, user])
 
   return (
     <Box className="home-container">
@@ -260,6 +274,19 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* ── Made For You Personalized Section ── */}
+      {personalizedMix.length > 0 && (
+        <HSection
+          title={loginType === 'user' ? `Made For You (${user?.username || 'You'})` : 'Recommended For You'}
+          icon={<MdAutoAwesome style={{ color: '#ec4899' }} />}
+          id="made-for-you-section"
+        >
+          {personalizedMix.map(s => (
+            <SongCard song={s} key={s.id} songList={personalizedMix} />
+          ))}
+        </HSection>
+      )}
 
       {/* ── Language blocks ── */}
       {loading ? (

@@ -24,7 +24,7 @@
 
 button,
 .MuiIconButton-root {
-  background: transparent !important;
+  background: transparent;
   border: none;
   cursor: pointer;
   transition: transform 0.15s ease, opacity 0.15s ease;

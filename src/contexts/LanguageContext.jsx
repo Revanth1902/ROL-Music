@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { setLanguageCookie, getLanguageCookie } from '../utils/cookies'
 
@@ -17,7 +18,9 @@ export const LanguageProvider = ({ children }) => {
       // Fallback: legacy single-language cookie
       const cookie = getLanguageCookie()
       if (cookie) return [cookie]
-    } catch { }
+    } catch (err) {
+      console.error(err);
+    }
     return []
   })
 
