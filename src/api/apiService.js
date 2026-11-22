@@ -1,20 +1,21 @@
 /**
  * ROL Music — API Service (v3)
  *
- * Song Play:    https://jiosavvan.vercel.app/songs?id={id}
- * Modules:      https://jiosavvan.vercel.app/modules?language={lang}
- * Album:        https://rol-backend.onrender.com/api/albums?id={id}
- * Artist:       https://rol-backend.onrender.com/api/artists/{artistId}
- * ArtistSongs:  https://rol-backend.onrender.com/api/artists/{artistId}/songs?page={page}
- * Playlist:     https://rol-backend.onrender.com/api/playlists?id={id}&page={page}
- * Search:       https://saavn.sumit.co/api/search/...
+ * Primary API:   https://saavn.sumit.co/api
+ * Fallback API:  https://rol-backend.onrender.com/api
+ * Tertiary API:  https://jiosavvan.vercel.app
  */
 
-const SONG_BASE = 'https://jiosavvan.vercel.app';
-const MUSIC_CATALOG_BASE = 'https://rol-backend.onrender.com/api';
-const SEARCH_PRIMARY = 'https://saavn.sumit.co/api';
-const SEARCH_FALLBACK = 'https://rol-backend.onrender.com/api';
-const SEARCH_TERTIARY = 'https://jiosavvan.vercel.app';
+const API_PRIMARY = 'https://saavn.sumit.co/api';
+const API_FALLBACK = 'https://rol-backend.onrender.com/api';
+const API_TERTIARY = 'https://jiosavvan.vercel.app';
+
+// Compatibility aliases
+const SONG_BASE = API_TERTIARY;
+const MUSIC_CATALOG_BASE = API_FALLBACK;
+const SEARCH_PRIMARY = API_PRIMARY;
+const SEARCH_FALLBACK = API_FALLBACK;
+const SEARCH_TERTIARY = API_TERTIARY;
 
 // ── HTML entity decoder ────────────────────────────────
 const htmlEntities = {
@@ -52,89 +53,66 @@ function getBestAudio(downloadUrlArr) {
     return pickField(downloadUrlArr[downloadUrlArr.length - 1], 'url', 'link');
 }
 
-// ── Generic fetchers ───────────────────────────────────
+// ── Unified Multi-Tier API Fetcher with Auto-Fallback ──────
+// 1. Primary:   Sumit's Saavn API (saavn.sumit.co/api)
+// 2. Fallback:  rol-backend.onrender.com/api (requested by user)
+// 3. Tertiary:  jiosavvan.vercel.app
 
-async function songFetch(path) {
+export async function apiFetch(path, { timeoutPrimary = 3500, timeoutFallback = 4500 } = {}) {
+    // 1. Primary: Sumit's Saavn API (saavn.sumit.co/api)
+    const ctrl1 = new AbortController();
+    const timer1 = setTimeout(() => ctrl1.abort(), timeoutPrimary);
     try {
-        const res = await fetch(`${SONG_BASE}${path}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (json?.status === 'SUCCESS') return json.data;
-        return json;
-    } catch (err) {
-        console.error('[songFetch]', path, err.message);
-        return null;
-    }
-}
-
-async function backendFetch(path) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500); // Fail fast if Render backend is sleeping
-    try {
-        const res = await fetch(`${MUSIC_CATALOG_BASE}${path}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (json?.success === false) throw new Error(json.message || 'API error');
-        return json?.data ?? json;
-    } catch (err) {
-        clearTimeout(timeoutId);
-
-        console.error('[backendFetch]', path, err.message);
-        return null; // Will trigger fallback in consumer if available
-    }
-}
-
-async function searchFetch(path) {
-    // 1. Try Primary Search API (saavn.sumit.co) with fast 3.2s abort
-    const controller1 = new AbortController();
-    const timeoutId1 = setTimeout(() => controller1.abort(), 3200);
-    try {
-        const res = await fetch(`${SEARCH_PRIMARY}${path}`, { signal: controller1.signal });
-        clearTimeout(timeoutId1);
+        const res = await fetch(`${API_PRIMARY}${path}`, { signal: ctrl1.signal });
+        clearTimeout(timer1);
         if (res.ok) {
             const json = await res.json();
-            if (json && json.success !== false) {
-                const data = json.data ?? json;
-                if (data) return data;
+            if (json && json.success !== false && json.status !== 'FAILED') {
+                const data = json.data !== undefined ? json.data : json;
+                if (data !== null && data !== undefined) return data;
             }
         }
     } catch (err) {
-        clearTimeout(timeoutId1);
-        console.warn('[searchFetch Primary failed, switching to Fallback]', path, err.message);
+        clearTimeout(timer1);
+        console.warn(`[Primary saavn.sumit.co failed on ${path}]:`, err.message);
     }
 
-    // 2. Try Fallback Search API: https://rol-backend.onrender.com/api (requested by user)
-    const controller2 = new AbortController();
-    const timeoutId2 = setTimeout(() => controller2.abort(), 4000);
+    // 2. Fallback: rol-backend.onrender.com/api
+    const ctrl2 = new AbortController();
+    const timer2 = setTimeout(() => ctrl2.abort(), timeoutFallback);
     try {
-        const res = await fetch(`${SEARCH_FALLBACK}${path}`, { signal: controller2.signal });
-        clearTimeout(timeoutId2);
+        const res = await fetch(`${API_FALLBACK}${path}`, { signal: ctrl2.signal });
+        clearTimeout(timer2);
         if (res.ok) {
             const json = await res.json();
-            if (json && json.success !== false) {
-                const data = json.data ?? json;
-                if (data) return data;
+            if (json && json.success !== false && json.status !== 'FAILED') {
+                const data = json.data !== undefined ? json.data : json;
+                if (data !== null && data !== undefined) return data;
             }
         }
     } catch (err) {
-        clearTimeout(timeoutId2);
-        console.warn('[searchFetch Fallback failed]', path, err.message);
+        clearTimeout(timer2);
+        console.warn(`[Fallback rol-backend failed on ${path}]:`, err.message);
     }
 
-    // 3. Try Tertiary JioSaavn directly
+    // 3. Tertiary: jiosavvan.vercel.app
     try {
-        const res = await fetch(`${SEARCH_TERTIARY}${path}`);
+        const res = await fetch(`${API_TERTIARY}${path}`);
         if (res.ok) {
             const json = await res.json();
-            return json?.data ?? json;
+            const data = json.data !== undefined ? json.data : json;
+            if (data !== null && data !== undefined) return data;
         }
     } catch (err) {
-        console.warn('[searchFetch Tertiary failed]', path, err.message);
+        console.warn(`[Tertiary jiosavvan failed on ${path}]:`, err.message);
     }
 
     return null;
 }
+
+const songFetch = (path) => apiFetch(path);
+const backendFetch = (path) => apiFetch(path);
+const searchFetch = (path) => apiFetch(path);
 
 // ── Normalizers ────────────────────────────────────────
 
@@ -201,7 +179,7 @@ export function normalizeAlbum(a) {
         year: a.year || a.releaseDate?.substring(0, 4) || '',
         language: a.language || '',
         cover: getBestImage(a.image),
-        songCount: Number(a.songCount) || 0,
+        songCount: Number(a.songCount) || (a.songs ? a.songs.length : 0),
         songs: (a.songs || []).map(normalizeSong).filter(Boolean),
     };
 }
@@ -307,97 +285,46 @@ export async function getTrendingSongs(language = 'hindi') {
 }
 
 // ── ALBUM ──────────────────────────────────────────────
-// Layer 1: backend (rol-backend) — has richer data for most IDs
-// Layer 2: jiosavvan /albums?id= — handles "i-XXXXX" style IDs from modules
 export async function getAlbumById(id) {
     if (!id) return null;
 
-    // Layer 1: try our backend first
-    const backendData = await backendFetch(`/albums?id=${id}`);
-    if (backendData) {
-        const album = normalizeAlbum(backendData);
-        if (album?.id) return album;
+    let data = await apiFetch(`/albums?id=${encodeURIComponent(id)}`);
+    if (!data || !data.id) {
+        data = await apiFetch(`/albums/${encodeURIComponent(id)}`);
     }
-
-    // Layer 2: fallback to jiosavvan directly (handles "i-XXXX" IDs from modules)
-    try {
-        const res = await fetch(`${SONG_BASE}/albums?id=${encodeURIComponent(id)}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        // jiosavvan album schema: { data: { id, name, songs: [...], ... } }
-        const raw = json?.data ?? json;
-        if (!raw?.id) return null;
-
-        // Songs inside the jiosavvan album response
-        const songs = (raw.songs || []).map(s => normalizeSong(s)).filter(Boolean);
-        const cover = getBestImage(raw.image);
-        const primaryArtists = raw.artists?.primary || raw.artists?.all || [];
-        return {
-            id: raw.id,
-            title: decodeEntities(raw.name || raw.title || 'Unknown Album'),
-            artist: Array.isArray(primaryArtists)
-                ? primaryArtists.map(x => decodeEntities(x.name || '')).join(', ')
-                : decodeEntities(raw.primaryArtists || ''),
-            year: raw.year || raw.releaseDate?.substring(0, 4) || '',
-            language: raw.language || '',
-            cover,
-            songCount: Number(raw.songCount) || songs.length,
-            songs,
-        };
-    } catch (err) {
-        console.error('[getAlbumById jiosavvan fallback]', id, err.message);
+    if (data) {
+        const album = normalizeAlbum(data);
+        if (album?.id) return album;
     }
 
     return null;
 }
 
 // ── ARTIST ────────────────────────────────────────────
-// GET https://rol-backend.onrender.com/api/artists/{artistId}
 export async function getArtistById(artistId) {
     if (!artistId) return null;
-    const data = await backendFetch(`/artists/${artistId}`);
+    let data = await apiFetch(`/artists/${encodeURIComponent(artistId)}`);
+    if (!data || !data.id) {
+        data = await apiFetch(`/artists?id=${encodeURIComponent(artistId)}`);
+    }
     if (data) {
         const artist = normalizeArtist(data);
         if (artist?.id) return artist;
     }
 
-    // Fallback: query JioSaavn directly
-    try {
-        const res = await fetch(`${SONG_BASE}/artists?id=${encodeURIComponent(artistId)}`);
-        if (res.ok) {
-            const json = await res.json();
-            const raw = json?.data ?? json;
-            if (raw?.id) return normalizeArtist(raw);
-        }
-    } catch (err) {
-        console.warn('[getArtistById fallback error]', err.message);
-    }
-
     return null;
 }
 
-// GET https://rol-backend.onrender.com/api/artists/{artistId}/songs?page={page}
-// Response: { success, data: { total, songs: [...] } }
 export async function getArtistSongs(artistId, page = 1) {
     if (!artistId) return [];
-    const data = await backendFetch(`/artists/${artistId}/songs?page=${page}`);
+    let data = await apiFetch(`/artists/${encodeURIComponent(artistId)}/songs?page=${page}`);
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+        data = await apiFetch(`/artists?id=${encodeURIComponent(artistId)}&page=${page}`);
+    }
     if (data) {
         const songs = data.songs || data.results || (Array.isArray(data) ? data : []);
         const normalized = songs.map(normalizeSong).filter(Boolean);
         if (normalized.length > 0) return normalized;
-    }
-
-    // Fallback: query JioSaavn directly
-    try {
-        const res = await fetch(`${SONG_BASE}/artists/${encodeURIComponent(artistId)}/songs?page=${page}`);
-        if (res.ok) {
-            const json = await res.json();
-            const raw = json?.data ?? json;
-            const songs = raw?.songs || raw?.results || (Array.isArray(raw) ? raw : []);
-            return songs.map(normalizeSong).filter(Boolean);
-        }
-    } catch (err) {
-        console.warn('[getArtistSongs fallback error]', err.message);
     }
 
     return [];
@@ -414,25 +341,15 @@ export async function getAllArtistSongs(artistId, maxPages = 10) {
 }
 
 // ── PLAYLIST ──────────────────────────────────────────
-// GET https://rol-backend.onrender.com/api/playlists?id={id}&page={page}
 export async function getPlaylistById(id, page = 1) {
     if (!id) return null;
-    const data = await backendFetch(`/playlists?id=${id}&page=${page}`);
+    let data = await apiFetch(`/playlists?id=${encodeURIComponent(id)}&page=${page}`);
+    if (!data || !data.id) {
+        data = await apiFetch(`/playlists/${encodeURIComponent(id)}?page=${page}`);
+    }
     if (data) {
         const pl = normalizePlaylist(data);
         if (pl?.id) return pl;
-    }
-
-    // Fallback: query JioSaavn directly
-    try {
-        const res = await fetch(`${SONG_BASE}/playlists?id=${encodeURIComponent(id)}&page=${page}`);
-        if (res.ok) {
-            const json = await res.json();
-            const raw = json?.data ?? json;
-            if (raw?.id) return normalizePlaylist(raw);
-        }
-    } catch (err) {
-        console.warn('[getPlaylistById fallback error]', err.message);
     }
 
     return null;
