@@ -16,10 +16,70 @@ dotenv.config();
 
 const app = express();
 
-// Ensure database connection for serverless environments (e.g. Vercel)
+// ── 1. GLOBAL BULLETPROOF CORS (FIRST MIDDLEWARE) ──────────────────
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma'
+  );
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
+
+  // Immediately respond to preflight OPTIONS requests without waiting for DB or routes
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// Standard cors package configuration
+app.use(cors({
+  origin: function (origin, callback) {
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  optionsSuccessStatus: 200,
+}));
+
+// Preflight handler for all routes
+app.options('*', (req, res) => {
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  return res.status(200).end();
+});
+
+// Relax helmet to prevent conflicts with CORS
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+}));
+
+app.use(express.json());
+app.use(morgan('dev'));
+
+// Rate limiting (skip OPTIONS and health check)
+const limiter = rateLimit({
+  windowMs: Number(RATE_LIMIT_WINDOW_MS) || 900000,
+  max: Number(RATE_LIMIT_MAX) || 500,
+  skip: (req) => req.method === 'OPTIONS' || req.path === '/health',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
+
+// ── 2. DATABASE CONNECTION MIDDLEWARE (AFTER CORS) ─────────────────
+// Ensures database is connected before handling API requests
 app.use(async (req, res, next) => {
-  // Allow health check to respond immediately without waiting for DB
-  if (req.path === '/health') return next();
+  if (req.method === 'OPTIONS' || req.path === '/health') return next();
 
   try {
     await connectDB();
@@ -33,38 +93,7 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Configure CORS dynamically to support any origin with credentials
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200,
-}));
-
-// Enable pre-flight for all routes
-app.options('*', cors());
-
-// Helmet with relaxed cross-origin resource policy
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginOpenerPolicy: { policy: "unsafe-none" },
-}));
-
-app.use(express.json());
-app.use(morgan('dev'));
-
-const limiter = rateLimit({
-  windowMs: Number(RATE_LIMIT_WINDOW_MS) || 900000,
-  max: Number(RATE_LIMIT_MAX) || 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
-
+// ── 3. ROUTES ──────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/songs', songRoutes);
