@@ -18,6 +18,17 @@ export const QueueProvider = ({ children }) => {
   const [isShuffle, setIsShuffle] = useState(false)
   const [isAutoPlay, setIsAutoPlay] = useState(() => localStorage.getItem('rol_autoplay') !== 'false')
   const [playedHistory, setPlayedHistory] = useState([])
+  const [historyQueue, setHistoryQueue] = useState([])
+
+  const pushToHistory = useCallback((song) => {
+    if (!song) return
+    const sId = song.id || song.sourceId || song._id
+    if (!sId) return
+    setHistoryQueue(prev => {
+      if (prev.length > 0 && (prev[prev.length - 1].id === sId)) return prev
+      return [...prev, song].slice(-60)
+    })
+  }, [])
 
   const toggleAutoPlay = useCallback(() => {
     setIsAutoPlay(prev => {
@@ -75,9 +86,15 @@ export const QueueProvider = ({ children }) => {
       if (firstTrack) {
         const idx = songList.findIndex(s => s.id === firstTrack.id)
         remaining = idx >= 0 ? songList.slice(idx + 1) : []
+        if (idx > 0) {
+          setHistoryQueue(songList.slice(0, idx))
+        } else {
+          setHistoryQueue([])
+        }
       } else {
         firstTrack = songList[0]
         remaining = songList.slice(1)
+        setHistoryQueue([])
       }
       setOriginalQueue(remaining)
     }
@@ -132,6 +149,9 @@ export const QueueProvider = ({ children }) => {
       toggleAutoPlay,
       playedHistory,
       addPlayedId,
+      historyQueue,
+      setHistoryQueue,
+      pushToHistory,
       playList,
       addToQueue,
       removeFromQueue,

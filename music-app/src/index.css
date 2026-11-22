@@ -16,6 +16,10 @@
 html, body {
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button, a, input, select, textarea, [role="button"] {
@@ -266,6 +270,8 @@ svg {
   position: relative;
   padding-bottom: 100px;
   background: transparent;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Desktop topbar */

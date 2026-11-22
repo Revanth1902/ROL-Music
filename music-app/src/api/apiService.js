@@ -584,6 +584,20 @@ export function getSongFingerprint(song) {
     return cleanTitle ? `${cleanTitle}|${primaryArtist}` : '';
 }
 
+export async function getSongSuggestions(songId) {
+    if (!songId) return [];
+    try {
+        const data = await searchFetch(`/songs/${songId}/suggestions`);
+        if (data) {
+            const rawList = Array.isArray(data) ? data : (data.results || data.songs || data.data || []);
+            return rawList.map(normalizeSong).filter(Boolean);
+        }
+    } catch (e) {
+        console.warn('[getSongSuggestions error]', e.message);
+    }
+    return [];
+}
+
 // ── SPOTIFY-GRADE AUTOPLAY RECOMMENDATIONS ENGINE ───────
 export async function getAutoplayRecommendations(currentSong, excludedIds = [], limit = 15) {
     if (!currentSong) return [];
@@ -619,7 +633,31 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
         return true;
     };
 
-    // 1. Primary Artist parsing
+    // 1. First priority: Direct Song Suggestions / Recommendations API (AI-matched by JioSaavn)
+    if (currentSong.id) {
+        try {
+            const suggestions = await getSongSuggestions(currentSong.id);
+            if (suggestions && suggestions.length > 0) {
+                suggestions.forEach(addSong);
+            }
+        } catch (err) {
+            console.warn('[Autoplay] suggestions error:', err.message);
+        }
+    }
+
+    // 2. Second priority: Artist Top Songs if artistId exists
+    if (recommendedSongs.length < limit && currentSong.artistId) {
+        try {
+            const artistSongs = await getArtistSongs(currentSong.artistId, 1);
+            if (artistSongs && artistSongs.length > 0) {
+                artistSongs.slice(0, 8).forEach(addSong);
+            }
+        } catch (err) {
+            console.warn('[Autoplay] artist top tracks error:', err.message);
+        }
+    }
+
+    // 3. Primary Artist & Related Artists matrix pool
     const rawArtist = currentSong.artistName || currentSong.artist || '';
     const artistList = rawArtist.split(',').map(a => a.trim()).filter(Boolean);
     const mainArtist = artistList[0] || 'Unknown Artist';

@@ -54,7 +54,7 @@ export default function FooterPlayer() {
 
   const {
     current, playing, audioLoading, playSong, togglePlay, progress, duration, seek, toggleLoop, loop, volume, setVolume, isMuted, toggleMute,
-    analyserNode, pannerVal, setPannerVal
+    analyserNode, pannerVal, setPannerVal, playPrevious, playNext
   } = useAudioPlayer();
   const { queue, setQueue, reorderQueue, removeFromQueue, isShuffle, toggleShuffle, isAutoPlay, toggleAutoPlay } = useQueue();
 
@@ -316,20 +316,7 @@ export default function FooterPlayer() {
     ? Math.min((progress / duration) * 100, 100)
     : 0;
 
-  // ===================== NEXT / PREVIOUS =====================
-  const playNext = () => {
-    if (queue.length > 0) {
-      const next = queue[0];
-      setQueue(queue.slice(1));
-      playSong(next);
-    }
-  };
 
-  const playPrevious = () => {
-    if (progress > 3) {
-      seek(0);
-    }
-  };
 
   // ===================== MEDIA SESSION =====================
   useEffect(() => {
