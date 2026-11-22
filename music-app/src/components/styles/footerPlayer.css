@@ -633,11 +633,56 @@
 
 .fs-song-album {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.45);
   margin: 3px 0 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.fs-clickable-artist {
+  color: rgba(255, 255, 255, 0.68);
+  cursor: pointer;
+  display: inline;
+  transition: color 0.15s ease, text-decoration 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.fs-clickable-artist:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.fs-clickable-artist:active {
+  color: #6c63ff;
+  opacity: 0.75;
+}
+
+.fs-clickable-album {
+  cursor: pointer;
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.42);
+  transition: color 0.15s ease, text-decoration 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.fs-clickable-album:hover {
+  color: rgba(255, 255, 255, 0.95);
+  text-decoration: underline;
+}
+
+.fs-clickable-album:active {
+  color: #6c63ff;
+  opacity: 0.75;
+}
+
+.fs-artist-sep {
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0 1px;
 }
 
 .fs-lyrics-btn {

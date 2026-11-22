@@ -164,12 +164,18 @@ export function normalizeSong(s) {
 
     const artistName = artistArr.map(a => decodeEntities(a.name || '')).filter(Boolean).join(', ') || 'Unknown Artist';
     const primaryArtist = artistArr[0] || {};
+    const normalizedArtists = artistArr.map(a => ({
+        id: a.id || '',
+        name: decodeEntities(a.name || ''),
+        role: a.role || '',
+    })).filter(a => a.name);
 
     return {
         id: s.id,
         title: decodeEntities(s.name || s.title || 'Unknown'),
         artistName,
         artistId: primaryArtist.id || '',
+        artists: normalizedArtists,
         albumId: s.album?.id || s.albumId || '',
         album: decodeEntities(s.album?.name || (typeof s.album === 'string' ? s.album : '') || ''),
         duration: Number(s.duration) || 0,

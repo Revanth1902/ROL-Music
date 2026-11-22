@@ -1,6 +1,8 @@
 // ===================== IMPORTS =====================
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { searchArtists, searchAlbums } from "../../api/apiService";
+import { downloadSongWithMetadata, subscribeDownloadProgress } from "../../utils/downloadSong";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import { Box, Typography, Menu, MenuItem, LinearProgress } from "@mui/material";
@@ -71,8 +73,15 @@ export default function FooterPlayer() {
   const [isSavedOffline, setIsSavedOffline] = useState(false);
 
   const location = useLocation();
+  const navigate = useNavigate();
   const isHistoryPushedRef = useRef(false);
   const prevPathRef = useRef(location.pathname);
+
+  // Subscribe to global download progress (ThreeDotMenu, FooterPlayer, etc.)
+  useEffect(() => {
+    const unsub = subscribeDownloadProgress(setDlState);
+    return () => unsub();
+  }, []);
 
   // Clean close of fullscreen player (user action via chevron or swipe-down)
   const closeFullscreen = useCallback(() => {
@@ -88,6 +97,58 @@ export default function FooterPlayer() {
     setShowQueue(false);
     setIsLyricsFlipped(false);
   }, []);
+
+  const artistList = useMemo(() => {
+    if (!current) return [];
+    if (Array.isArray(current.artists) && current.artists.length > 0) {
+      return current.artists;
+    }
+    if (current.artistName) {
+      return current.artistName.split(',').map((name, i) => ({
+        id: i === 0 ? (current.artistId || '') : '',
+        name: name.trim(),
+      })).filter(a => a.name);
+    }
+    return [];
+  }, [current]);
+
+  const handleArtistClick = async (artist) => {
+    closeFullscreen();
+    if (artist.id) {
+      navigate(`/artist/${artist.id}`);
+      return;
+    }
+    try {
+      const res = await searchArtists(artist.name, 0, 1);
+      if (res?.results?.[0]?.id) {
+        navigate(`/artist/${res.results[0].id}`);
+        return;
+      }
+    } catch (e) {
+      console.warn('[handleArtistClick error]', e);
+    }
+    navigate(`/songs?q=${encodeURIComponent(artist.name)}`);
+  };
+
+  const handleAlbumClick = async () => {
+    closeFullscreen();
+    if (current.albumId) {
+      navigate(`/album/${current.albumId}`);
+      return;
+    }
+    if (current.album) {
+      try {
+        const res = await searchAlbums(current.album, 0, 1);
+        if (res?.results?.[0]?.id) {
+          navigate(`/album/${res.results[0].id}`);
+          return;
+        }
+      } catch (e) {
+        console.warn('[handleAlbumClick error]', e);
+      }
+      navigate(`/songs?q=${encodeURIComponent(current.album)}`);
+    }
+  };
 
   // When openFull becomes true, push a state into browser history so back button closes it without route change
   useEffect(() => {
@@ -390,141 +451,10 @@ export default function FooterPlayer() {
   }, [current]);
 
 
-  // ── Sanitize filename ──────────────────────────────────
-  const sanitize = (s) => (s || '').replace(/[&<>"'[\]]/g, c => ({ '&': 'and', '<': '', '>': "", "'": "", "\"": '', ' [': ' ', ' ]': ' ' }[c] ?? '')).trim().replace(/  +/g, ' ');
-
   // ===================== DOWNLOAD WITH METADATA + PROGRESS =====================
-  const downloadSong = async (song) => {
-    if (!song?.src) return;
-
-    const cleanTitle = sanitize(song.title);
-    const cleanArtist = sanitize(song.artistName);
-    const filename = `${cleanTitle} - ${cleanArtist}.mp3`;
-
-    setDlState({ name: cleanTitle, progress: 0, done: false });
-
-    try {
-      const audioRes = await fetch(song.src);
-      const total = Number(audioRes.headers.get("Content-Length")) || 0;
-      const reader = audioRes.body.getReader();
-
-      const chunks = [];
-      let received = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        chunks.push(value);
-        received += value.length;
-
-        if (total > 0) {
-          setDlState((d) => ({
-            ...d,
-            progress: Math.round((received / total) * 80),
-          }));
-        }
-      }
-
-      const audioBuffer = new Uint8Array(received);
-      let pos = 0;
-
-      for (const chunk of chunks) {
-        audioBuffer.set(chunk, pos);
-        pos += chunk.length;
-      }
-
-      setDlState((d) => ({ ...d, progress: 85 }));
-
-      // Use mp3tag.js for broader compatibility
-      const mp3tag = new MP3Tag(audioBuffer.buffer);
-      mp3tag.read();
-
-      // Initialize if v2 tags object is missing
-      if (!mp3tag.tags.v2) mp3tag.tags.v2 = {};
-
-      /* -------------------- BASIC METADATA -------------------- */
-      mp3tag.tags.v2.TIT2 = cleanTitle; // Title
-      mp3tag.tags.v2.TPE1 = cleanArtist; // Artist
-      mp3tag.tags.v2.TALB = sanitize(song.album) || "ROL Music"; // Album
-      mp3tag.tags.v2.TCON = song.genre || "Music"; // Genre
-      mp3tag.tags.v2.TPUB = "ROL Music"; // Publisher
-      mp3tag.tags.v2.TCOP = "ROL Music"; // Copyright
-      mp3tag.tags.v2.TENC = "ROL Music"; // Encoded by
-      mp3tag.tags.v2.TCOM = song.composer || cleanArtist; // Composer
-
-      if (song.year) {
-        mp3tag.tags.v2.TYER = String(song.year);
-      }
-      if (song.language) {
-        mp3tag.tags.v2.TLAN = song.language;
-      }
-
-      /* -------------------- COVER IMAGE -------------------- */
-      if (song.cover) {
-        try {
-          const coverBuffer = await fetch(song.cover).then((r) =>
-            r.arrayBuffer()
-          );
-
-          mp3tag.tags.v2.APIC = [
-            {
-              format: "image/jpeg",
-              type: 3,
-              description: "Cover",
-              data: new Uint8Array(coverBuffer), // pass Uint8Array
-            },
-          ];
-        } catch (e) {
-          console.log("Cover image failed:", e);
-        }
-      }
-
-      setDlState((d) => ({ ...d, progress: 95 }));
-
-      mp3tag.save();
-
-      const taggedBlob = new window.Blob([mp3tag.buffer], { type: "audio/mpeg" });
-      const url = URL.createObjectURL(taggedBlob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-
-      setDlState((d) => ({ ...d, progress: 100, done: true }));
-      setTimeout(() => setDlState(null), 3500);
-
-    } catch (err) {
-      console.error("[download]", err);
-
-      try {
-        const buf = await fetch(song.src).then((r) => r.arrayBuffer());
-
-        const blob = new Blob([buf], { type: "audio/mpeg" });
-
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      } catch (err) {
-        console.error('[download error]', err);
-      }
-
-      setDlState(null);
-    }
+  const downloadSong = (song) => {
+    if (!song) return;
+    downloadSongWithMetadata(song);
   };
 
 
@@ -852,8 +782,37 @@ export default function FooterPlayer() {
                   <div className="fs-info">
                     <div className="fs-info-text">
                       <div className="fs-song-title">{current.title}</div>
-                      <div className="fs-song-artist">{current.artistName}</div>
-                      {current.album && <div className="fs-song-album">{current.album}</div>}
+                      <div className="fs-song-artist">
+                        {artistList && artistList.length > 0 ? (
+                          artistList.map((artist, idx) => (
+                            <React.Fragment key={artist.name + idx}>
+                              <span
+                                className="fs-clickable-artist"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleArtistClick(artist);
+                                }}
+                              >
+                                {artist.name}
+                              </span>
+                              {idx < artistList.length - 1 && <span className="fs-artist-sep">, </span>}
+                            </React.Fragment>
+                          ))
+                        ) : (
+                          <span>{current.artistName}</span>
+                        )}
+                      </div>
+                      {current.album && (
+                        <div
+                          className="fs-song-album fs-clickable-album"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAlbumClick();
+                          }}
+                        >
+                          {current.album}
+                        </div>
+                      )}
                     </div>
                   </div>
 

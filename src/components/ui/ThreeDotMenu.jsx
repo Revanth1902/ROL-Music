@@ -4,6 +4,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { useQueue } from '../../contexts/QueueContext'
 import { getSongById, searchSongs } from '../../api/apiService'
 import { shareSong } from '../../utils/share'
+import { downloadSongWithMetadata } from '../../utils/downloadSong'
 
 // React Icons
 import { MdMoreVert } from 'react-icons/md'
@@ -55,13 +56,8 @@ export default function ThreeDotMenu({ song }) {
 
   const handleDownload = () => {
     close()
-    if (!song?.src) return
-    const a = document.createElement('a')
-    a.href = song.src
-    a.download = `${song.title || 'song'} - ${song.artistName || ''}.mp3`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
+    if (!song) return
+    downloadSongWithMetadata(song)
   }
 
   const menuSx = {
@@ -145,12 +141,10 @@ export default function ThreeDotMenu({ song }) {
           Share
         </MenuItem>
 
-        {song?.src && (
-          <MenuItem onClick={handleDownload}>
-            <MdDownload className="tdm-icon" />
-            Download
-          </MenuItem>
-        )}
+        <MenuItem onClick={handleDownload}>
+          <MdDownload className="tdm-icon" />
+          Download
+        </MenuItem>
       </Menu>
     </>
   )

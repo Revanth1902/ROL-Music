@@ -10,10 +10,28 @@ const songRoutes = require('./routes/songRoutes');
 const userRoutes = require('./routes/userRoutes');
 const playlistRoutes = require('./routes/playlistRoutes');
 const errorHandler = require('./middleware/errorHandler');
+const { connectDB } = require('./config/db');
 
 dotenv.config();
 
 const app = express();
+
+// Ensure database connection for serverless environments (e.g. Vercel)
+app.use(async (req, res, next) => {
+  // Allow health check to respond immediately without waiting for DB
+  if (req.path === '/health') return next();
+
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('[Database Connection Error]:', err.message);
+    return res.status(503).json({
+      success: false,
+      error: `Database connection failed: ${err.message}. Ensure MONGO_URI is set on Vercel and MongoDB Atlas has whitelisted IP 0.0.0.0/0.`,
+    });
+  }
+});
 
 // Configure CORS dynamically to support any origin with credentials
 app.use(cors({
