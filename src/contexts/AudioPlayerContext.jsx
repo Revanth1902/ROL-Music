@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useQueue } from "./QueueContext";
 import { useAuth } from "./AuthContext";
 import { createSong, trackSongPlay } from "../api/authApi";
