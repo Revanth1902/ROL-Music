@@ -1,0 +1,18 @@
+{
+  "short_name": "ROL Music",
+  "name": "ROL Music - Unlimited Music Streaming",
+  "description": "High-fidelity music streaming, offline playback, synced lyrics, and personalized recommendations.",
+  "icons": [
+    {
+      "src": "/image.png",
+      "type": "image/png",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/home",
+  "background_color": "#070a12",
+  "theme_color": "#070a12",
+  "display": "standalone",
+  "orientation": "portrait"
+}

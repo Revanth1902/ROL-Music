@@ -10,6 +10,16 @@
   padding: 0;
   box-sizing: border-box;
   font-family: "Plus Jakarta Sans", "Outfit", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
 }
 
 /* Override MUI icon button */
@@ -295,7 +305,20 @@ svg {
    ========================================= */
 @media (max-width: 768px) {
   .main-content {
-    padding-bottom: 80px;
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Native mobile tactile tap feedback */
+  .song-card:active,
+  .album-card:active,
+  .artist-card:active,
+  .playlist-card:active,
+  .chart-card:active,
+  .sli:active,
+  button:active,
+  .MuiIconButton-root:active {
+    transform: scale(0.965);
+    transition: transform 0.1s ease-out;
   }
 }
 

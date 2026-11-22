@@ -595,7 +595,11 @@ export default function FooterPlayer() {
       )}
 
       {/* MOBILE MINI PLAYER */}
-      <Box className="mobile-mini-player" onClick={() => setOpenFull(true)}>
+      <Box
+        className="mobile-mini-player"
+        onClick={() => setOpenFull(true)}
+        style={{ '--mini-progress': `${progressPercent}%` }}
+      >
         <img src={current.cover} className="mini-cover" alt={current.title}
           onError={e => e.target.style.display = 'none'} />
 

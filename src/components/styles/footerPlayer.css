@@ -253,20 +253,32 @@
 
   .mobile-mini-player {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 68px;
-    background: rgba(14, 16, 28, 0.96);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    left: 10px;
+    right: 10px;
+    height: 64px;
+    background: rgba(14, 18, 32, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
     display: flex;
     align-items: center;
     padding: 0 12px;
     z-index: 1200;
     gap: 10px;
     cursor: pointer;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+
+  .mobile-mini-player:active {
+    transform: scale(0.985);
+    background: rgba(20, 26, 46, 0.98);
   }
 
   /* Progress bar at top of mini player */
@@ -275,11 +287,11 @@
     position: absolute;
     top: 0;
     left: 0;
-    height: 2px;
+    height: 3px;
     width: var(--mini-progress, 0%);
-    background: linear-gradient(90deg, #6c63ff, #1db954);
-    border-radius: 0 2px 2px 0;
-    transition: width 0.4s linear;
+    background: linear-gradient(90deg, #6c63ff, #ff3366, #00d2ff);
+    border-radius: 0 3px 3px 0;
+    transition: width 0.3s linear;
   }
 
   .mini-cover {

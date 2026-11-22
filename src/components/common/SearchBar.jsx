@@ -81,19 +81,29 @@ export default function SearchBar() {
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && query.trim()) {
+      if (e.target && e.target.blur) e.target.blur()
       navigate(`/songs?q=${encodeURIComponent(query.trim())}`)
       setOpen(false)
     }
   }
 
-  const songs = (results?.songs?.results || []).slice(0, 5)
-  const albums = (results?.albums?.results || []).slice(0, 3)
-  const artists = (results?.artists?.results || []).slice(0, 3)
+  const songList = results?.songs?.results || results?.songs?.data || (Array.isArray(results?.songs) ? results.songs : []) || (Array.isArray(results?.data?.songs) ? results.data.songs : []) || []
+  const songs = songList.slice(0, 5)
 
-  const getImg = (arr) => {
-    if (!Array.isArray(arr)) return ''
-    const img = arr.find(i => i.quality === '150x150') || arr[0]
-    return img?.url || ''
+  const albumList = results?.albums?.results || results?.albums?.data || (Array.isArray(results?.albums) ? results.albums : []) || []
+  const albums = albumList.slice(0, 3)
+
+  const artistList = results?.artists?.results || results?.artists?.data || (Array.isArray(results?.artists) ? results.artists : []) || []
+  const artists = artistList.slice(0, 3)
+
+  const getImg = (imgField) => {
+    if (!imgField) return ''
+    if (typeof imgField === 'string') return imgField
+    if (Array.isArray(imgField)) {
+      const found = imgField.find(i => i.quality === '150x150') || imgField.find(i => i.quality === '500x500') || imgField[imgField.length - 1] || imgField[0]
+      return found?.url || found?.link || ''
+    }
+    return ''
   }
 
   return (

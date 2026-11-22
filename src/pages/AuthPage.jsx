@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, Button, TextField, Typography, Checkbox, FormControlLabel, IconButton, Menu, MenuItem } from '@mui/material';
 import { 
   FaGoogle, 
+  FaHeadphones,
   FaEye, 
   FaEyeSlash,
   FaChevronDown,
@@ -438,6 +439,20 @@ export default function AuthPage() {
                 <FaGoogle className="google-icon" />
                 <span>Continue with Google</span>
               </button>
+
+              {/* Continue as Guest Button */}
+              <button
+                type="button"
+                className="auth-guest-btn"
+                onClick={() => {
+                  continueAsGuest();
+                  navigate('/home');
+                }}
+              >
+                <FaHeadphones className="guest-btn-icon" />
+                <span>Continue as Guest</span>
+                <span className="guest-badge">Quick Access</span>
+              </button>
             </form>
 
             {/* Toggle Mode Link */}
@@ -457,20 +472,6 @@ export default function AuthPage() {
                   </button>
                 </>
               )}
-            </div>
-
-            {/* Guest Action */}
-            <div className="auth-guest-wrapper">
-              <button
-                type="button"
-                className="auth-guest-link"
-                onClick={() => {
-                  continueAsGuest();
-                  navigate('/home');
-                }}
-              >
-                Continue as Guest →
-              </button>
             </div>
 
           </div>

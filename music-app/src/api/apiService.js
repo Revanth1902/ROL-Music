@@ -12,7 +12,9 @@
 
 const SONG_BASE = 'https://jiosavvan.vercel.app';
 const MUSIC_CATALOG_BASE = 'https://rol-backend.onrender.com/api';
-const SEARCH_BASE = 'https://saavn.sumit.co/api';
+const SEARCH_PRIMARY = 'https://saavn.sumit.co/api';
+const SEARCH_FALLBACK = 'https://rol-backend.onrender.com/api';
+const SEARCH_TERTIARY = 'https://jiosavvan.vercel.app';
 
 // ── HTML entity decoder ────────────────────────────────
 const htmlEntities = {
@@ -84,16 +86,54 @@ async function backendFetch(path) {
 }
 
 async function searchFetch(path) {
+    // 1. Try Primary Search API (saavn.sumit.co) with fast 3.2s abort
+    const controller1 = new AbortController();
+    const timeoutId1 = setTimeout(() => controller1.abort(), 3200);
     try {
-        const res = await fetch(`${SEARCH_BASE}${path}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (json && !json.success) throw new Error(json.message || 'Search error');
-        return json?.data ?? null;
+        const res = await fetch(`${SEARCH_PRIMARY}${path}`, { signal: controller1.signal });
+        clearTimeout(timeoutId1);
+        if (res.ok) {
+            const json = await res.json();
+            if (json && json.success !== false) {
+                const data = json.data ?? json;
+                if (data) return data;
+            }
+        }
     } catch (err) {
-        console.error('[searchFetch]', path, err.message);
-        return null;
+        clearTimeout(timeoutId1);
+        console.warn('[searchFetch Primary failed, switching to Fallback]', path, err.message);
     }
+
+    // 2. Try Fallback Search API: https://rol-backend.onrender.com/api (requested by user)
+    const controller2 = new AbortController();
+    const timeoutId2 = setTimeout(() => controller2.abort(), 4000);
+    try {
+        const res = await fetch(`${SEARCH_FALLBACK}${path}`, { signal: controller2.signal });
+        clearTimeout(timeoutId2);
+        if (res.ok) {
+            const json = await res.json();
+            if (json && json.success !== false) {
+                const data = json.data ?? json;
+                if (data) return data;
+            }
+        }
+    } catch (err) {
+        clearTimeout(timeoutId2);
+        console.warn('[searchFetch Fallback failed]', path, err.message);
+    }
+
+    // 3. Try Tertiary JioSaavn directly
+    try {
+        const res = await fetch(`${SEARCH_TERTIARY}${path}`);
+        if (res.ok) {
+            const json = await res.json();
+            return json?.data ?? json;
+        }
+    } catch (err) {
+        console.warn('[searchFetch Tertiary failed]', path, err.message);
+    }
+
+    return null;
 }
 
 // ── Normalizers ────────────────────────────────────────
@@ -414,42 +454,46 @@ export async function globalSearch(query) {
 export async function searchSongs(query, page = 0, limit = 20) {
     const data = await searchFetch(`/search/songs?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     if (!data) return { results: [], total: 0 };
+    const rawList = data.results || data.songs || (Array.isArray(data) ? data : []);
     return {
-        results: (data.results || []).map(normalizeSong).filter(Boolean),
-        total: data.total || 0,
+        results: rawList.map(normalizeSong).filter(Boolean),
+        total: data.total || rawList.length,
     };
 }
 
 export async function searchAlbums(query, page = 0, limit = 20) {
     const data = await searchFetch(`/search/albums?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     if (!data) return { results: [], total: 0 };
-    const results = (data.results || []).map(a => normalizeAlbum({
+    const rawList = data.results || data.albums || (Array.isArray(data) ? data : []);
+    const results = rawList.map(a => normalizeAlbum({
         ...a,
         name: a.name || a.title,
         artists: a.artists,
         image: a.image,
     })).filter(Boolean);
-    return { results, total: data.total || 0 };
+    return { results, total: data.total || rawList.length };
 }
 
 export async function searchArtists(query, page = 0, limit = 20) {
     const data = await searchFetch(`/search/artists?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     if (!data) return { results: [], total: 0 };
+    const rawList = data.results || data.artists || (Array.isArray(data) ? data : []);
     return {
-        results: (data.results || []).map(normalizeSearchArtist).filter(Boolean),
-        total: data.total || 0,
+        results: rawList.map(normalizeSearchArtist).filter(Boolean),
+        total: data.total || rawList.length,
     };
 }
 
 export async function searchPlaylists(query, page = 0, limit = 20) {
     const data = await searchFetch(`/search/playlists?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
     if (!data) return { results: [], total: 0 };
-    const results = (data.results || []).map(p => normalizePlaylist({
+    const rawList = data.results || data.playlists || (Array.isArray(data) ? data : []);
+    const results = rawList.map(p => normalizePlaylist({
         ...p,
         title: p.title || p.name,
         image: p.image,
     })).filter(Boolean);
-    return { results, total: data.total || 0 };
+    return { results, total: data.total || rawList.length };
 }
 
 // ── LANGUAGE CONFIG ───────────────────────────────────

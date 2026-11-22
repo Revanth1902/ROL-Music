@@ -493,24 +493,54 @@
   text-decoration: underline;
 }
 
-.auth-guest-wrapper {
-  text-align: center;
-  margin-top: 10px;
+.auth-guest-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  height: 48px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1.5px solid rgba(167, 139, 250, 0.35) !important;
+  border-radius: 14px !important;
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  color: #f1f5f9 !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  margin-top: 10px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
 }
 
-.auth-guest-link {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.2s;
+.auth-guest-btn:hover {
+  background: rgba(167, 139, 250, 0.12) !important;
+  border-color: #a78bfa !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px rgba(167, 139, 250, 0.35) !important;
 }
 
-.auth-guest-link:hover {
-  color: #ffffff;
-  text-decoration: underline;
+.auth-guest-btn:active {
+  transform: scale(0.98) !important;
+  background: rgba(167, 139, 250, 0.2) !important;
+}
+
+.guest-btn-icon {
+  font-size: 1.15rem !important;
+  color: #a78bfa !important;
+}
+
+.guest-badge {
+  font-size: 0.68rem !important;
+  padding: 2px 8px !important;
+  border-radius: 10px !important;
+  background: rgba(167, 139, 250, 0.2) !important;
+  color: #c4b5fd !important;
+  font-weight: 700 !important;
+  margin-left: 6px !important;
+  border: 1px solid rgba(167, 139, 250, 0.4) !important;
 }
 
 /* ──────────────────────────────────────────────────

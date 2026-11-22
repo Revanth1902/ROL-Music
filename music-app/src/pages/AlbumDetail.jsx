@@ -132,7 +132,15 @@ export default function AlbumDetail() {
                     {album.year && <p className="detail-year">{album.year} · {album.language}</p>}
                     <p className="detail-count">{songs.length} songs</p>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '16px',
+                        flexWrap: 'wrap',
+                        width: '100%',
+                        margin: '20px auto',
+                    }}>
                         <button className="detail-play-all-btn" onClick={playAll}
                             disabled={resolving && songs.every(s => !s.src)}>
                             <PlayArrowIcon /> Play All
