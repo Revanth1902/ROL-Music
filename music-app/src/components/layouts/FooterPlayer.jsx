@@ -705,6 +705,8 @@ export default function FooterPlayer() {
             className="footer-cover"
             alt={current.title}
             onError={e => e.target.style.display = 'none'}
+            onClick={() => setOpenFull(true)}
+            title="Expand player"
           />
           <div className="marqueemaincontainer">
             <div className="marquee-container">
@@ -714,51 +716,109 @@ export default function FooterPlayer() {
             </div>
             <div className="marquee-container">
               <div className="marquee artist" ref={artistRef}>
-                <Typography className="footer-artist">{current.artistName}</Typography>
+                <Typography className="footer-artist">
+                  {artistList && artistList.length > 0 ? (
+                    artistList.map((artist, idx) => (
+                      <React.Fragment key={artist.name + idx}>
+                        <span
+                          className="footer-clickable-artist"
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleArtistClick(artist);
+                          }}
+                        >
+                          {artist.name}
+                        </span>
+                        {idx < artistList.length - 1 && <span className="footer-artist-sep">, </span>}
+                      </React.Fragment>
+                    ))
+                  ) : current?.artistName ? (
+                    <span
+                      className="footer-clickable-artist"
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleArtistClick({ name: current.artistName, id: current.artistId });
+                      }}
+                    >
+                      {current.artistName}
+                    </span>
+                  ) : null}
+                </Typography>
               </div>
             </div>
           </div>
-          <SongActions song={current} size="small" />
+
+          <div className="footer-left-actions">
+            <button
+              className={`fp-action-btn fp-like-btn ${isLiked ? 'liked' : ''} ${likeAnim ? 'like-pop' : ''}`}
+              onClick={handleLike}
+              title={loginType === 'user' ? (isLiked ? 'Unlike song' : 'Like song') : 'Log in to like song'}
+              aria-label={isLiked ? 'Unlike song' : 'Like song'}
+            >
+              {isLikeLoading ? (
+                <CircularProgress size={18} thickness={4.5} sx={{ color: '#ff3366' }} />
+              ) : isLiked ? (
+                <FavoriteIcon sx={{ fontSize: '1.25rem', color: '#ff3366' }} />
+              ) : (
+                <FavoriteBorderIcon sx={{ fontSize: '1.25rem' }} />
+              )}
+            </button>
+
+            <button
+              className="fp-action-btn fp-playlist-btn"
+              onClick={handleOpenPlaylist}
+              title={loginType === 'user' ? 'Add to Playlist' : 'Log in to add to playlist'}
+              aria-label="Add to Playlist"
+            >
+              <PlaylistAddIcon sx={{ fontSize: '1.25rem' }} />
+            </button>
+          </div>
         </Box>
 
         {/* CENTER */}
         <Box className="footer-center">
           <Box className="footer-controls">
-            <Box
+            <button
               className={`fp-ctrl-btn ${isShuffle ? 'fp-ctrl-active' : ''}`}
               onClick={toggleShuffle}
               title={isShuffle ? 'Shuffle On' : 'Shuffle Off'}
             >
-              <ShuffleIcon fontSize="small" />
-            </Box>
+              <ShuffleIcon sx={{ fontSize: '1.2rem' }} />
+            </button>
 
-            <Box className="fp-ctrl-btn" onClick={playPrevious} title="Previous">
-              <SkipPreviousIcon fontSize="small" />
-            </Box>
+            <button className="fp-ctrl-btn" onClick={playPrevious} title="Previous">
+              <SkipPreviousIcon sx={{ fontSize: '1.5rem' }} />
+            </button>
 
-            <Box className="fp-play-btn" onClick={togglePlay}>
-              {audioLoading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : playing ? <PauseIcon /> : <PlayArrowIcon />}
-            </Box>
+            <button
+              className="fp-play-btn"
+              onClick={togglePlay}
+              title={playing ? 'Pause' : 'Play'}
+            >
+              {audioLoading ? (
+                <CircularProgress size={20} sx={{ color: '#0a0c18' }} />
+              ) : playing ? (
+                <PauseIcon sx={{ fontSize: '1.5rem' }} />
+              ) : (
+                <PlayArrowIcon sx={{ fontSize: '1.5rem' }} />
+              )}
+            </button>
 
-            <Box className="fp-ctrl-btn" onClick={playNext} title="Next">
-              <SkipNextIcon fontSize="small" />
-            </Box>
+            <button className="fp-ctrl-btn" onClick={playNext} title="Next">
+              <SkipNextIcon sx={{ fontSize: '1.5rem' }} />
+            </button>
 
-            <Box
+            <button
               className={`fp-ctrl-btn ${loop ? 'fp-ctrl-active' : ''}`}
               onClick={toggleLoop}
-              title="Repeat"
+              title={loop ? 'Repeat On' : 'Repeat Off'}
             >
-              <RepeatIcon fontSize="small" />
-            </Box>
-
-            <Box
-              className={`fp-ctrl-btn ${isAutoPlay ? 'fp-ctrl-active' : ''}`}
-              onClick={toggleAutoPlay}
-              title={isAutoPlay ? 'Autoplay On (Play similar songs when queue ends)' : 'Autoplay Off'}
-            >
-              <AutoAwesomeIcon fontSize="small" />
-            </Box>
+              <RepeatIcon sx={{ fontSize: '1.2rem' }} />
+            </button>
           </Box>
 
           <SeekBar progress={progress} duration={duration} onSeek={seek} />
@@ -766,37 +826,50 @@ export default function FooterPlayer() {
 
         {/* RIGHT */}
         <Box className="footer-right">
-          <Typography className="queue-count">{queue.length} in queue</Typography>
+          <button
+            className={`fp-ctrl-btn ${isAutoPlay ? 'fp-ctrl-active' : ''}`}
+            onClick={toggleAutoPlay}
+            title={isAutoPlay ? 'Autoplay On (Similar songs auto-queued)' : 'Autoplay Off'}
+          >
+            <AutoAwesomeIcon sx={{ fontSize: '1.2rem' }} />
+          </button>
 
-          <Box
-            className={`fp-ctrl-btn ${showDesktopLyrics ? "fp-ctrl-active" : ""}`}
+          <button
+            className={`fp-ctrl-btn ${showDesktopLyrics ? 'fp-ctrl-active' : ''}`}
             onClick={() => { setShowDesktopLyrics(!showDesktopLyrics); setShowQueue(false); }}
             title="Lyrics"
           >
-            <LyricsIcon fontSize="small" />
-          </Box>
+            <LyricsIcon sx={{ fontSize: '1.2rem' }} />
+          </button>
 
-          <Box className="fp-ctrl-btn" onClick={() => downloadSong(current)} title="Download">
-            <DownloadIcon fontSize="small" />
-          </Box>
+          <button className="fp-ctrl-btn" onClick={() => downloadSong(current)} title="Download MP3">
+            <DownloadIcon sx={{ fontSize: '1.2rem' }} />
+          </button>
 
-          <Box
-            className={`fp-ctrl-btn ${showQueue ? 'fp-ctrl-active' : ''}`}
+          <button
+            className={`fp-ctrl-btn fp-queue-btn ${showQueue ? 'fp-ctrl-active' : ''}`}
             onClick={() => { setShowQueue(prev => !prev); setShowDesktopLyrics(false); }}
-            title="Queue"
+            title={`Queue (${queue.length} songs)`}
           >
-            <QueueMusicIcon fontSize="small" />
-          </Box>
+            <QueueMusicIcon sx={{ fontSize: '1.2rem' }} />
+            {queue.length > 0 && <span className="fp-queue-badge">{queue.length}</span>}
+          </button>
 
           {/* Volume Control */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
-            <Box
+          <div className="fp-volume-wrap">
+            <button
               className={`fp-ctrl-btn ${isMuted ? 'fp-ctrl-active' : ''}`}
               onClick={toggleMute}
               title={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted || volume === 0 ? <VolumeOffIcon fontSize="small" /> : volume < 0.5 ? <VolumeDownIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
-            </Box>
+              {isMuted || volume === 0 ? (
+                <VolumeOffIcon sx={{ fontSize: '1.2rem' }} />
+              ) : volume < 0.5 ? (
+                <VolumeDownIcon sx={{ fontSize: '1.2rem' }} />
+              ) : (
+                <VolumeUpIcon sx={{ fontSize: '1.2rem' }} />
+              )}
+            </button>
             <input
               type="range"
               min="0"
@@ -804,15 +877,13 @@ export default function FooterPlayer() {
               step="0.01"
               value={isMuted ? 0 : volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="fp-vol-slider"
               style={{
-                width: 76,
-                height: 4,
-                accentColor: '#a78bfa',
-                cursor: 'pointer',
+                '--vol-percent': `${(isMuted ? 0 : volume) * 100}%`,
               }}
               title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
             />
-          </Box>
+          </div>
         </Box>
       </Box>
 
@@ -1334,6 +1405,8 @@ export default function FooterPlayer() {
             <DownloadIcon fontSize="small" /> Download
           </MenuItem>
         )}
+      </Menu>
+
       {/* ── Add to Playlist Dialog (Fullscreen Player & Global) ── */}
       <Dialog
         open={playlistModalOpen}

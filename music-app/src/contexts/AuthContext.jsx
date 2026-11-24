@@ -12,12 +12,20 @@ export function AuthProvider({ children }) {
   const [authReady, setAuthReady] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMessage, setAuthModalMessage] = useState('Login required for this feature');
-  const [likedSongIds, setLikedSongIds] = useState([]);
+  const [likedSongIds, setLikedSongIds] = useState(() => {
+    try {
+      const cached = localStorage.getItem('rol_liked_song_ids');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [recentlyPlayed, setRecentlyPlayed] = useState([]);
 
   const clearAuthState = useCallback(() => {
     Cookies.remove('token');
     Cookies.remove('loginType');
+    try { localStorage.removeItem('rol_liked_song_ids'); } catch {}
     setToken(null);
     setUser(null);
     setLikedSongIds([]);
@@ -32,36 +40,49 @@ export function AuthProvider({ children }) {
   const closeAuthModal = useCallback(() => setAuthModalOpen(false), []);
 
   const refreshLikedSongs = useCallback(async (activeToken = token) => {
-    if (!activeToken || loginType !== 'user') {
+    const effectiveToken = activeToken || token || Cookies.get('token');
+    if (!effectiveToken) {
       setLikedSongIds([]);
+      try { localStorage.removeItem('rol_liked_song_ids'); } catch {}
       return [];
     }
 
     try {
-      const songs = await getLikedSongs(activeToken);
-      const ids = songs
-        .map(song => song?.id || song?._id || song?.sourceId || song?.song?.id || song?.song?._id || song?.song?.sourceId)
-        .filter(Boolean)
-        .map(String);
-      setLikedSongIds(ids);
+      const songs = await getLikedSongs(effectiveToken);
+      const ids = [];
+      (Array.isArray(songs) ? songs : []).forEach(song => {
+        const item = song?.song || song;
+        if (!item) return;
+        if (item.id) ids.push(String(item.id));
+        if (item._id) ids.push(String(item._id));
+        if (item.sourceId) ids.push(String(item.sourceId));
+      });
+      const uniqueIds = Array.from(new Set(ids));
+      setLikedSongIds(uniqueIds);
+      try { localStorage.setItem('rol_liked_song_ids', JSON.stringify(uniqueIds)); } catch {}
       return songs;
     } catch (error) {
-      console.error('[auth] failed to refresh liked songs', error);
+      console.warn('[auth] failed to refresh liked songs from backend, keeping cached IDs:', error.message);
+      try {
+        const cached = localStorage.getItem('rol_liked_song_ids');
+        if (cached) return JSON.parse(cached);
+      } catch {}
       return [];
     }
-  }, [loginType, token]);
+  }, [token]);
 
   const refreshRecentlyPlayed = useCallback(async (activeToken = token) => {
-    if (!activeToken || loginType !== 'user') return [];
+    const effectiveToken = activeToken || token || Cookies.get('token');
+    if (!effectiveToken) return [];
     try {
-      const data = await getRecentlyPlayed(activeToken);
+      const data = await getRecentlyPlayed(effectiveToken);
       setRecentlyPlayed(data);
       return data;
     } catch (error) {
       console.error('[auth] failed to refresh recent plays', error);
       return [];
     }
-  }, [loginType, token]);
+  }, [token]);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -78,6 +99,8 @@ export function AuthProvider({ children }) {
           } else {
             setUser({ id: 'google_user', username: 'Google User', email: 'google@gmail.com' });
           }
+          await refreshLikedSongs(cookieToken);
+          await refreshRecentlyPlayed(cookieToken);
         } else {
           try {
             const response = await getCurrentUser(cookieToken);
@@ -176,6 +199,8 @@ export function AuthProvider({ children }) {
     setUser(gUser);
     setLoginType('user');
     setAuthModalOpen(false);
+    await refreshLikedSongs(gToken);
+    await refreshRecentlyPlayed(gToken);
     return { token: gToken, user: gUser };
   }, [refreshLikedSongs, refreshRecentlyPlayed]);
 
@@ -193,16 +218,54 @@ export function AuthProvider({ children }) {
     setAuthModalOpen(false);
   }, [clearAuthState]);
 
+  const isSongLiked = useCallback((song) => {
+    if (!song || !likedSongIds || likedSongIds.length === 0) return false;
+    const candidates = [
+      song.id,
+      song._id,
+      song.sourceId,
+      song.song?.id,
+      song.song?._id,
+      song.song?.sourceId,
+    ].filter(Boolean).map(String);
+
+    return candidates.some(id => likedSongIds.includes(id));
+  }, [likedSongIds]);
+
   const toggleLike = useCallback(async (song) => {
-    if (loginType !== 'user') {
-      openAuthModal();
+    const effectiveToken = token || Cookies.get('token');
+    const effectiveLoginType = loginType || Cookies.get('loginType');
+
+    if (effectiveLoginType !== 'user' || !effectiveToken) {
+      openAuthModal('Sign in to like songs and save them to your library');
       return false;
     }
 
     const songId = song?.id || song?._id || song?.sourceId;
     if (!songId) return false;
 
-    const isLiked = likedSongIds.includes(String(songId));
+    const currentlyLiked = isSongLiked(song);
+    const idCandidates = [
+      song.id,
+      song._id,
+      song.sourceId,
+      song.song?.id,
+      song.song?._id,
+      song.song?.sourceId,
+    ].filter(Boolean).map(String);
+
+    // Optimistic UI update so the heart responds with 0ms delay!
+    setLikedSongIds(prev => {
+      let updated;
+      if (currentlyLiked) {
+        updated = prev.filter(id => !idCandidates.includes(id));
+      } else {
+        updated = Array.from(new Set([...prev, ...idCandidates]));
+      }
+      try { localStorage.setItem('rol_liked_song_ids', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
     try {
       const payload = {
         id: song.id || song._id || song.sourceId,
@@ -217,20 +280,14 @@ export function AuthProvider({ children }) {
         duration: Number(song.duration) || 0,
         album: song.album || '',
       };
-      await toggleLikeSong(songId, token, isLiked, payload);
-      await refreshLikedSongs(token);
+      await toggleLikeSong(songId, effectiveToken, currentlyLiked, payload);
+      await refreshLikedSongs(effectiveToken);
       return true;
     } catch (error) {
-      console.error('[auth] like action failed', error);
-      return false;
+      console.warn('[auth] toggleLikeSong backend failed, keeping optimistic state:', error.message);
+      return true;
     }
-  }, [loginType, openAuthModal, likedSongIds, token, refreshLikedSongs]);
-
-  const isSongLiked = useCallback((song) => {
-    const songId = song?.id || song?._id || song?.sourceId;
-    if (!songId) return false;
-    return likedSongIds.includes(String(songId));
-  }, [likedSongIds]);
+  }, [token, loginType, openAuthModal, isSongLiked, refreshLikedSongs]);
 
   const value = useMemo(() => ({
     loginType,
@@ -248,17 +305,39 @@ export function AuthProvider({ children }) {
     continueAsGuest,
     openAuthModal,
     closeAuthModal,
-    toggleLike,
-    isSongLiked,
     refreshLikedSongs,
     refreshRecentlyPlayed,
+    toggleLike,
+    isSongLiked,
   }), [
-    loginType, token, user, authReady, authModalOpen, authModalMessage,
-    likedSongIds, recentlyPlayed, login, signup, loginWithGoogle, logout, continueAsGuest,
-    openAuthModal, closeAuthModal, toggleLike, isSongLiked, refreshLikedSongs, refreshRecentlyPlayed
+    loginType,
+    token,
+    user,
+    authReady,
+    authModalOpen,
+    authModalMessage,
+    likedSongIds,
+    recentlyPlayed,
+    login,
+    signup,
+    loginWithGoogle,
+    logout,
+    continueAsGuest,
+    openAuthModal,
+    closeAuthModal,
+    refreshLikedSongs,
+    refreshRecentlyPlayed,
+    toggleLike,
+    isSongLiked,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

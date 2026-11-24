@@ -705,6 +705,8 @@ export default function FooterPlayer() {
             className="footer-cover"
             alt={current.title}
             onError={e => e.target.style.display = 'none'}
+            onClick={() => setOpenFull(true)}
+            title="Expand player"
           />
           <div className="marqueemaincontainer">
             <div className="marquee-container">
@@ -714,51 +716,109 @@ export default function FooterPlayer() {
             </div>
             <div className="marquee-container">
               <div className="marquee artist" ref={artistRef}>
-                <Typography className="footer-artist">{current.artistName}</Typography>
+                <Typography className="footer-artist">
+                  {artistList && artistList.length > 0 ? (
+                    artistList.map((artist, idx) => (
+                      <React.Fragment key={artist.name + idx}>
+                        <span
+                          className="footer-clickable-artist"
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleArtistClick(artist);
+                          }}
+                        >
+                          {artist.name}
+                        </span>
+                        {idx < artistList.length - 1 && <span className="footer-artist-sep">, </span>}
+                      </React.Fragment>
+                    ))
+                  ) : current?.artistName ? (
+                    <span
+                      className="footer-clickable-artist"
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleArtistClick({ name: current.artistName, id: current.artistId });
+                      }}
+                    >
+                      {current.artistName}
+                    </span>
+                  ) : null}
+                </Typography>
               </div>
             </div>
           </div>
-          <SongActions song={current} size="small" />
+
+          <div className="footer-left-actions">
+            <button
+              className={`fp-action-btn fp-like-btn ${isLiked ? 'liked' : ''} ${likeAnim ? 'like-pop' : ''}`}
+              onClick={handleLike}
+              title={loginType === 'user' ? (isLiked ? 'Unlike song' : 'Like song') : 'Log in to like song'}
+              aria-label={isLiked ? 'Unlike song' : 'Like song'}
+            >
+              {isLikeLoading ? (
+                <CircularProgress size={18} thickness={4.5} sx={{ color: '#ff3366' }} />
+              ) : isLiked ? (
+                <FavoriteIcon sx={{ fontSize: '1.25rem', color: '#ff3366' }} />
+              ) : (
+                <FavoriteBorderIcon sx={{ fontSize: '1.25rem' }} />
+              )}
+            </button>
+
+            <button
+              className="fp-action-btn fp-playlist-btn"
+              onClick={handleOpenPlaylist}
+              title={loginType === 'user' ? 'Add to Playlist' : 'Log in to add to playlist'}
+              aria-label="Add to Playlist"
+            >
+              <PlaylistAddIcon sx={{ fontSize: '1.25rem' }} />
+            </button>
+          </div>
         </Box>
 
         {/* CENTER */}
         <Box className="footer-center">
           <Box className="footer-controls">
-            <Box
+            <button
               className={`fp-ctrl-btn ${isShuffle ? 'fp-ctrl-active' : ''}`}
               onClick={toggleShuffle}
               title={isShuffle ? 'Shuffle On' : 'Shuffle Off'}
             >
-              <ShuffleIcon fontSize="small" />
-            </Box>
+              <ShuffleIcon sx={{ fontSize: '1.2rem' }} />
+            </button>
 
-            <Box className="fp-ctrl-btn" onClick={playPrevious} title="Previous">
-              <SkipPreviousIcon fontSize="small" />
-            </Box>
+            <button className="fp-ctrl-btn" onClick={playPrevious} title="Previous">
+              <SkipPreviousIcon sx={{ fontSize: '1.5rem' }} />
+            </button>
 
-            <Box className="fp-play-btn" onClick={togglePlay}>
-              {audioLoading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : playing ? <PauseIcon /> : <PlayArrowIcon />}
-            </Box>
+            <button
+              className="fp-play-btn"
+              onClick={togglePlay}
+              title={playing ? 'Pause' : 'Play'}
+            >
+              {audioLoading ? (
+                <CircularProgress size={20} sx={{ color: '#0a0c18' }} />
+              ) : playing ? (
+                <PauseIcon sx={{ fontSize: '1.5rem' }} />
+              ) : (
+                <PlayArrowIcon sx={{ fontSize: '1.5rem' }} />
+              )}
+            </button>
 
-            <Box className="fp-ctrl-btn" onClick={playNext} title="Next">
-              <SkipNextIcon fontSize="small" />
-            </Box>
+            <button className="fp-ctrl-btn" onClick={playNext} title="Next">
+              <SkipNextIcon sx={{ fontSize: '1.5rem' }} />
+            </button>
 
-            <Box
+            <button
               className={`fp-ctrl-btn ${loop ? 'fp-ctrl-active' : ''}`}
               onClick={toggleLoop}
-              title="Repeat"
+              title={loop ? 'Repeat On' : 'Repeat Off'}
             >
-              <RepeatIcon fontSize="small" />
-            </Box>
-
-            <Box
-              className={`fp-ctrl-btn ${isAutoPlay ? 'fp-ctrl-active' : ''}`}
-              onClick={toggleAutoPlay}
-              title={isAutoPlay ? 'Autoplay On (Play similar songs when queue ends)' : 'Autoplay Off'}
-            >
-              <AutoAwesomeIcon fontSize="small" />
-            </Box>
+              <RepeatIcon sx={{ fontSize: '1.2rem' }} />
+            </button>
           </Box>
 
           <SeekBar progress={progress} duration={duration} onSeek={seek} />
@@ -766,37 +826,50 @@ export default function FooterPlayer() {
 
         {/* RIGHT */}
         <Box className="footer-right">
-          <Typography className="queue-count">{queue.length} in queue</Typography>
+          <button
+            className={`fp-ctrl-btn ${isAutoPlay ? 'fp-ctrl-active' : ''}`}
+            onClick={toggleAutoPlay}
+            title={isAutoPlay ? 'Autoplay On (Similar songs auto-queued)' : 'Autoplay Off'}
+          >
+            <AutoAwesomeIcon sx={{ fontSize: '1.2rem' }} />
+          </button>
 
-          <Box
-            className={`fp-ctrl-btn ${showDesktopLyrics ? "fp-ctrl-active" : ""}`}
+          <button
+            className={`fp-ctrl-btn ${showDesktopLyrics ? 'fp-ctrl-active' : ''}`}
             onClick={() => { setShowDesktopLyrics(!showDesktopLyrics); setShowQueue(false); }}
             title="Lyrics"
           >
-            <LyricsIcon fontSize="small" />
-          </Box>
+            <LyricsIcon sx={{ fontSize: '1.2rem' }} />
+          </button>
 
-          <Box className="fp-ctrl-btn" onClick={() => downloadSong(current)} title="Download">
-            <DownloadIcon fontSize="small" />
-          </Box>
+          <button className="fp-ctrl-btn" onClick={() => downloadSong(current)} title="Download MP3">
+            <DownloadIcon sx={{ fontSize: '1.2rem' }} />
+          </button>
 
-          <Box
-            className={`fp-ctrl-btn ${showQueue ? 'fp-ctrl-active' : ''}`}
+          <button
+            className={`fp-ctrl-btn fp-queue-btn ${showQueue ? 'fp-ctrl-active' : ''}`}
             onClick={() => { setShowQueue(prev => !prev); setShowDesktopLyrics(false); }}
-            title="Queue"
+            title={`Queue (${queue.length} songs)`}
           >
-            <QueueMusicIcon fontSize="small" />
-          </Box>
+            <QueueMusicIcon sx={{ fontSize: '1.2rem' }} />
+            {queue.length > 0 && <span className="fp-queue-badge">{queue.length}</span>}
+          </button>
 
           {/* Volume Control */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
-            <Box
+          <div className="fp-volume-wrap">
+            <button
               className={`fp-ctrl-btn ${isMuted ? 'fp-ctrl-active' : ''}`}
               onClick={toggleMute}
               title={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted || volume === 0 ? <VolumeOffIcon fontSize="small" /> : volume < 0.5 ? <VolumeDownIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
-            </Box>
+              {isMuted || volume === 0 ? (
+                <VolumeOffIcon sx={{ fontSize: '1.2rem' }} />
+              ) : volume < 0.5 ? (
+                <VolumeDownIcon sx={{ fontSize: '1.2rem' }} />
+              ) : (
+                <VolumeUpIcon sx={{ fontSize: '1.2rem' }} />
+              )}
+            </button>
             <input
               type="range"
               min="0"
@@ -804,15 +877,13 @@ export default function FooterPlayer() {
               step="0.01"
               value={isMuted ? 0 : volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="fp-vol-slider"
               style={{
-                width: 76,
-                height: 4,
-                accentColor: '#a78bfa',
-                cursor: 'pointer',
+                '--vol-percent': `${(isMuted ? 0 : volume) * 100}%`,
               }}
               title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
             />
-          </Box>
+          </div>
         </Box>
       </Box>
 
@@ -1070,6 +1141,10 @@ export default function FooterPlayer() {
                     <button className="fs-action-btn" onClick={() => setShowQueue(true)}>
                       <QueueMusicIcon className="fa-icon" />
                       <span>Queue</span>
+                    </button>
+                    <button className="fs-action-btn" onClick={handleOpenPlaylist}>
+                      <PlaylistAddIcon className="fa-icon" />
+                      <span>Playlist</span>
                     </button>
                     <button className="fs-action-btn" onClick={() => shareSong(current)}>
                       <ShareIcon className="fa-icon" />
@@ -1331,6 +1406,175 @@ export default function FooterPlayer() {
           </MenuItem>
         )}
       </Menu>
+
+      {/* ── Add to Playlist Dialog (Fullscreen Player & Global) ── */}
+      <Dialog
+        open={playlistModalOpen}
+        onClose={() => setPlaylistModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'rgba(14, 18, 34, 0.96)',
+            backdropFilter: 'blur(28px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '20px',
+            color: '#ffffff',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.85)',
+            p: 1,
+          }
+        }}
+        sx={{ zIndex: 99999 }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, color: '#fff', fontWeight: 700 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PlaylistAddIcon sx={{ color: '#6c63ff' }} />
+            <span>Add to Playlist</span>
+          </Box>
+          <IconButton size="small" onClick={() => setPlaylistModalOpen(false)} sx={{ color: 'rgba(255,255,255,0.6)' }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ color: 'rgba(255,255,255,0.85)', pt: '10px !important' }}>
+          {playlistLoading ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1.5 }}>
+              <CircularProgress size={32} sx={{ color: '#6c63ff' }} />
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>Loading playlists...</Typography>
+            </Box>
+          ) : (
+            <>
+              {/* Existing Playlists List */}
+              {userPlaylists.length > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2.5, maxHeight: '200px', overflowY: 'auto', pr: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 600 }}>
+                    Select Playlist
+                  </Typography>
+                  {userPlaylists.map((pl) => {
+                    const plId = pl._id || pl.id;
+                    const plName = pl.playlistName || pl.title || pl.name || 'Untitled Playlist';
+                    const isAdding = addingToId === plId;
+                    const isSuccess = addedSuccessId === plId;
+
+                    return (
+                      <Button
+                        key={plId}
+                        variant="outlined"
+                        fullWidth
+                        disabled={isAdding}
+                        onClick={() => handleAddToExistingPlaylist(plId, plName)}
+                        sx={{
+                          justifyContent: 'space-between',
+                          textAlign: 'left',
+                          color: '#fff',
+                          borderColor: isSuccess ? '#10b981' : 'rgba(255,255,255,0.12)',
+                          background: isSuccess ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.03)',
+                          borderRadius: '12px',
+                          py: 1,
+                          px: 1.5,
+                          textTransform: 'none',
+                          fontWeight: 500,
+                          '&:hover': {
+                            background: 'rgba(108, 99, 255, 0.15)',
+                            borderColor: '#6c63ff',
+                          }
+                        }}
+                      >
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{plName}</span>
+                        {isSuccess ? (
+                          <CheckCircleIcon sx={{ color: '#10b981', fontSize: '1.2rem', ml: 1 }} />
+                        ) : isAdding ? (
+                          <CircularProgress size={18} sx={{ color: '#6c63ff', ml: 1 }} />
+                        ) : (
+                          <PlaylistAddIcon sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.2rem', ml: 1 }} />
+                        )}
+                      </Button>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Box sx={{ py: 1.5, textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                  No playlists found. Create your first playlist below!
+                </Box>
+              )}
+
+              {/* Create New Playlist Form */}
+              <Box component="form" onSubmit={handleCreateAndAddPlaylist} sx={{ display: 'grid', gap: 1.5, pt: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 600 }}>
+                  Create New Playlist
+                </Typography>
+                <TextField
+                  placeholder="Playlist name"
+                  size="small"
+                  fullWidth
+                  value={newPlaylistName}
+                  onChange={e => setNewPlaylistName(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      background: 'rgba(255,255,255,0.06)',
+                      borderRadius: '10px',
+                      color: 'white',
+                      '& fieldset': { borderColor: 'rgba(255,255,255,0.14)' },
+                      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.25)' },
+                      '&.Mui-focused fieldset': { borderColor: '#6c63ff' },
+                    },
+                    '& .MuiInputBase-input': { color: 'white', fontSize: '0.9rem' },
+                  }}
+                />
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  value={newPlaylistPrivacy}
+                  onChange={e => setNewPlaylistPrivacy(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      background: 'rgba(255,255,255,0.06)',
+                      borderRadius: '10px',
+                      color: 'white',
+                      '& fieldset': { borderColor: 'rgba(255,255,255,0.14)' },
+                    },
+                    '& .MuiSelect-select': { color: 'white', fontSize: '0.9rem' },
+                  }}
+                >
+                  <MenuItem value="private">Private</MenuItem>
+                  <MenuItem value="public">Public</MenuItem>
+                </TextField>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={!newPlaylistName.trim() || playlistLoading}
+                  sx={{
+                    background: '#6c63ff',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderRadius: '10px',
+                    py: 1,
+                    '&:hover': { background: '#574fe7' }
+                  }}
+                >
+                  Create & Add Song
+                </Button>
+              </Box>
+
+              {playlistFeedback && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    mt: 1.5,
+                    textAlign: 'center',
+                    color: playlistFeedback.includes('Added') || playlistFeedback.includes('created') ? '#10b981' : '#f87171',
+                    fontWeight: 600
+                  }}
+                >
+                  {playlistFeedback}
+                </Typography>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -627,16 +627,22 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
         return true;
     };
 
-    // 1. Direct Song Suggestions (AI-matched by JioSaavn)
+    // 1. Direct Song Suggestions (AI-matched by JioSaavn) - FASTEST & MOST RELEVANT
     if (currentSong.id) {
         try {
             const suggestions = await getSongSuggestions(currentSong.id);
             if (suggestions && suggestions.length > 0) {
-                suggestions.slice(0, 6).forEach(addSong);
+                suggestions.forEach(addSong);
             }
         } catch (err) {
             console.warn('[Autoplay] suggestions error:', err.message);
         }
+    }
+
+    // If suggestions already provided 8+ high quality matching tracks, return immediately!
+    // This avoids making 5-6 slow parallel search calls that cause network stalls and delays!
+    if (recommendedSongs.length >= 8) {
+        return recommendedSongs.slice(0, limit);
     }
 
     // 2. Album / Soundtrack Companion Tracks (Same film/album atmosphere)
@@ -648,9 +654,9 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
                     album.songs.slice(0, 5).forEach(addSong);
                 }
             } else if (currentSong.album && currentSong.album !== 'Unknown Album') {
-                const albumResult = await searchSongs(currentSong.album, 0, 8);
+                const albumResult = await searchSongs(currentSong.album, 0, 5);
                 if (albumResult?.results && albumResult.results.length > 0) {
-                    albumResult.results.slice(0, 4).forEach(addSong);
+                    albumResult.results.slice(0, 3).forEach(addSong);
                 }
             }
         } catch (err) {
@@ -659,74 +665,60 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
     }
 
     // 3. Primary Artist Top Songs
-    if (recommendedSongs.length < limit && currentSong.artistId) {
+    const rawArtist = currentSong.artistName || currentSong.artist || '';
+    const artistList = rawArtist.split(',').map(a => a.trim()).filter(Boolean);
+    const mainArtist = artistList[0] || '';
+
+    if (recommendedSongs.length < limit && (currentSong.artistId || mainArtist)) {
         try {
-            const artistSongs = await getArtistSongs(currentSong.artistId, 1);
-            if (artistSongs && artistSongs.length > 0) {
-                artistSongs.slice(0, 6).forEach(addSong);
+            if (currentSong.artistId) {
+                const artistSongs = await getArtistSongs(currentSong.artistId, 1);
+                if (artistSongs && artistSongs.length > 0) {
+                    artistSongs.slice(0, 5).forEach(addSong);
+                }
+            } else if (mainArtist) {
+                const artistRes = await searchSongs(mainArtist, 0, 6);
+                if (artistRes?.results && artistRes.results.length > 0) {
+                    artistRes.results.slice(0, 4).forEach(addSong);
+                }
             }
         } catch (err) {
             console.warn('[Autoplay] artist top tracks error:', err.message);
         }
     }
 
-    // 4. Peer Artists & Genre Affinity Matrix (Interleaved Round-Robin)
-    const rawArtist = currentSong.artistName || currentSong.artist || '';
-    const artistList = rawArtist.split(',').map(a => a.trim()).filter(Boolean);
-    const mainArtist = artistList[0] || 'Unknown Artist';
-    const mainArtistLower = mainArtist.toLowerCase();
-
-    let relatedArtists = RELATED_ARTISTS_MAP[mainArtistLower];
-    if (!relatedArtists || relatedArtists.length === 0) {
-        const matchKey = Object.keys(RELATED_ARTISTS_MAP).find(k => mainArtistLower.includes(k) || k.includes(mainArtistLower));
-        if (matchKey) {
-            relatedArtists = RELATED_ARTISTS_MAP[matchKey];
-        }
-    }
-
-    if (!relatedArtists || relatedArtists.length === 0) {
-        relatedArtists = artistList.slice(1);
-    }
-
-    const songLang = (currentSong.language || 'hindi').toLowerCase();
-    if ((!relatedArtists || relatedArtists.length === 0) && LANGUAGE_AFFINITY_MAP[songLang]) {
-        relatedArtists = LANGUAGE_AFFINITY_MAP[songLang];
-    }
-
-    const artistQueryPool = [mainArtist, ...(relatedArtists || [])].slice(0, 6);
-
-    try {
-        const fetchResults = await Promise.all(
-            artistQueryPool.map(async (art) => {
-                try {
-                    const res = await searchSongs(art, 0, 8);
-                    return res?.results || [];
-                } catch {
-                    return [];
-                }
-            })
-        );
-
-        let maxSongsPerArtist = Math.max(0, ...fetchResults.map(r => r.length));
-        for (let round = 0; round < maxSongsPerArtist; round++) {
-            for (let i = 0; i < fetchResults.length; i++) {
-                const song = fetchResults[i][round];
-                if (song) addSong(song);
-                if (recommendedSongs.length >= limit) break;
+    // 4. One Closely Related Peer Artist (targeted query, NOT 6 heavy parallel searches)
+    if (recommendedSongs.length < limit && mainArtist) {
+        const mainArtistLower = mainArtist.toLowerCase();
+        let relatedArtists = RELATED_ARTISTS_MAP[mainArtistLower];
+        if (!relatedArtists || relatedArtists.length === 0) {
+            const matchKey = Object.keys(RELATED_ARTISTS_MAP).find(k => mainArtistLower.includes(k) || k.includes(mainArtistLower));
+            if (matchKey) {
+                relatedArtists = RELATED_ARTISTS_MAP[matchKey];
             }
-            if (recommendedSongs.length >= limit) break;
         }
-    } catch (err) {
-        console.warn('[Autoplay] parallel fetch error:', err.message);
+
+        const peerArtist = relatedArtists?.[0] || artistList[1];
+        if (peerArtist) {
+            try {
+                const peerRes = await searchSongs(peerArtist, 0, 5);
+                if (peerRes?.results && peerRes.results.length > 0) {
+                    peerRes.results.slice(0, 3).forEach(addSong);
+                }
+            } catch (err) {
+                console.warn('[Autoplay] peer artist error:', err.message);
+            }
+        }
     }
 
-    // 5. Language-Locked Discovery Fallback (Prevents genre/language clash)
-    if (recommendedSongs.length < limit) {
+    // 5. Language Discovery Fallback (if still below 4 songs)
+    const songLang = (currentSong.language || 'hindi').toLowerCase();
+    if (recommendedSongs.length < 4) {
         try {
             const mappedLang = LANGUAGE_MAP[songLang] || songLang || 'hindi';
-            const langResult = await searchSongs(`top ${mappedLang} songs`, 0, 15);
+            const langResult = await searchSongs(`top ${mappedLang} songs`, 0, 8);
             if (langResult?.results) {
-                langResult.results.forEach(addSong);
+                langResult.results.slice(0, 5).forEach(addSong);
             }
         } catch (err) {
             console.warn('[Autoplay] Language fallback error:', err.message);

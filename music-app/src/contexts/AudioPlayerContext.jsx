@@ -60,13 +60,13 @@ export const AudioPlayerProvider = ({ children }) => {
   const { user, loginType, token } = useAuth();
 
   const prefetchRecommendationsIfNeeded = async (targetSong, currentQueue = queue) => {
-    if (!isAutoPlay || !targetSong || currentQueue.length > 3 || prefetchingRef.current) return;
+    if (!isAutoPlay || !targetSong || currentQueue.length > 4 || prefetchingRef.current) return;
 
     prefetchingRef.current = true;
     try {
       const { getAutoplayRecommendations, getSongFingerprint } = await import('../api/apiService');
       const excluded = [...playedHistory, targetSong.id, ...currentQueue.map(s => s.id)];
-      const recs = await getAutoplayRecommendations(targetSong, excluded, 20);
+      const recs = await getAutoplayRecommendations(targetSong, excluded, 15);
       if (recs && recs.length > 0) {
         setQueue(prev => {
           const existingIds = new Set(prev.map(s => String(s.id)));
@@ -96,7 +96,7 @@ export const AudioPlayerProvider = ({ children }) => {
 
   // Pre-fetch recommendations when playing song with small queue
   useEffect(() => {
-    if (playing && current && isAutoPlay && queue.length <= 3) {
+    if (playing && current && isAutoPlay && queue.length <= 4) {
       prefetchRecommendationsIfNeeded(current, queue);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,7 +119,7 @@ export const AudioPlayerProvider = ({ children }) => {
         }
         setQueue(remaining);
         playSong(next, false);
-        if (remaining.length <= 3 && isAutoPlay) {
+        if (remaining.length <= 4 && isAutoPlay) {
           prefetchRecommendationsIfNeeded(next, remaining);
         }
       } else if (isAutoPlay && current) {
@@ -127,7 +127,11 @@ export const AudioPlayerProvider = ({ children }) => {
         setAudioLoading(true);
         try {
           const { getAutoplayRecommendations } = await import('../api/apiService');
-          const recs = await getAutoplayRecommendations(current, playedHistory, 20);
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Autoplay timeout')), 4000));
+          const recs = await Promise.race([
+            getAutoplayRecommendations(current, playedHistory, 15),
+            timeoutPromise
+          ]);
           if (recs && recs.length > 0) {
             const next = recs[0];
             setQueue(recs.slice(1));
@@ -137,7 +141,7 @@ export const AudioPlayerProvider = ({ children }) => {
             setAudioLoading(false);
           }
         } catch (err) {
-          console.error('[Autoplay onEnd error]', err);
+          console.warn('[Autoplay onEnd fallback]:', err.message);
           setPlaying(false);
           setAudioLoading(false);
         }
@@ -389,7 +393,7 @@ export const AudioPlayerProvider = ({ children }) => {
       }
       setQueue(remaining);
       playSong(next, false);
-      if (remaining.length <= 3 && isAutoPlay) {
+      if (remaining.length <= 4 && isAutoPlay) {
         prefetchRecommendationsIfNeeded(next, remaining);
       }
     } else if (isAutoPlay && current) {
@@ -397,7 +401,11 @@ export const AudioPlayerProvider = ({ children }) => {
       setAudioLoading(true);
       try {
         const { getAutoplayRecommendations } = await import('../api/apiService');
-        const recs = await getAutoplayRecommendations(current, playedHistory, 20);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Autoplay timeout')), 4000));
+        const recs = await Promise.race([
+          getAutoplayRecommendations(current, playedHistory, 15),
+          timeoutPromise
+        ]);
         if (recs && recs.length > 0) {
           const next = recs[0];
           setQueue(recs.slice(1));
@@ -406,7 +414,7 @@ export const AudioPlayerProvider = ({ children }) => {
           setAudioLoading(false);
         }
       } catch (err) {
-        console.error('[playNext autoplay error]', err);
+        console.warn('[playNext autoplay error]:', err.message);
         setAudioLoading(false);
       }
     }
