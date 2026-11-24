@@ -62,8 +62,21 @@ export const QueueProvider = ({ children }) => {
     })
   }, [queue, originalQueue])
 
-  const playList = useCallback((songList, startSong = null, shuffleMode = false, playSongFn = null) => {
-    if (!songList || songList.length === 0) return
+  const playList = useCallback((rawSongList, startSong = null, shuffleMode = false, playSongFn = null) => {
+    if (!rawSongList || rawSongList.length === 0) return
+
+    // Deduplicate playlist songs by ID and core title
+    const seenIds = new Set()
+    const songList = []
+    for (const s of rawSongList) {
+      if (!s) continue
+      const sId = String(s.id || s.sourceId || s._id || '')
+      if (sId && seenIds.has(sId)) continue
+      if (sId) seenIds.add(sId)
+      songList.push(s)
+    }
+
+    if (songList.length === 0) return
 
     let firstTrack = startSong
     let remaining = []
@@ -109,13 +122,29 @@ export const QueueProvider = ({ children }) => {
   }, [])
 
   const addToQueue = (song) => {
-    setQueue((q) => [...q, song])
-    setOriginalQueue((q) => [...q, song])
+    if (!song || (!song.id && !song.sourceId && !song._id)) return
+    const sId = String(song.id || song.sourceId || song._id)
+    setQueue((q) => {
+      if (q.some(s => String(s.id || s.sourceId || s._id) === sId)) return q
+      return [...q, song]
+    })
+    setOriginalQueue((q) => {
+      if (q.some(s => String(s.id || s.sourceId || s._id) === sId)) return q
+      return [...q, song]
+    })
   }
 
   const addNext = (song) => {
-    setQueue((q) => [song, ...q])
-    setOriginalQueue((q) => [song, ...q])
+    if (!song || (!song.id && !song.sourceId && !song._id)) return
+    const sId = String(song.id || song.sourceId || song._id)
+    setQueue((q) => {
+      const filtered = q.filter(s => String(s.id || s.sourceId || s._id) !== sId)
+      return [song, ...filtered]
+    })
+    setOriginalQueue((q) => {
+      const filtered = q.filter(s => String(s.id || s.sourceId || s._id) !== sId)
+      return [song, ...filtered]
+    })
   }
 
   const removeFromQueue = (id) => {

@@ -75,26 +75,23 @@ export const AudioPlayerProvider = ({ children }) => {
 
     prefetchingRef.current = true;
     try {
-      const { getAutoplayRecommendations, getSongFingerprint } = await import('../api/apiService');
-      const excluded = [...playedHistory.slice(0, 25), targetSong.id, ...activeQ.map(s => s.id)];
-      const recs = await getAutoplayRecommendations(targetSong, excluded, 15);
+      const { getAutoplayRecommendations, createDeduplicator } = await import('../api/apiService');
+      const excludedContext = [
+        targetSong,
+        ...activeQ,
+        ...(historyQueue || []),
+        ...(playedHistory || [])
+      ];
+      const recs = await getAutoplayRecommendations(targetSong, excludedContext, 16);
       if (recs && recs.length > 0) {
         setQueue(prev => {
-          const existingIds = new Set(prev.map(s => String(s.id)));
-          const existingFps = new Set(prev.map(s => getSongFingerprint(s)).filter(Boolean));
-          if (targetSong.id) existingIds.add(String(targetSong.id));
-          const targetFp = getSongFingerprint(targetSong);
-          if (targetFp) existingFps.add(targetFp);
-
-          const newItems = recs.filter(s => {
-            const sId = String(s.id);
-            const fp = getSongFingerprint(s);
-            if (existingIds.has(sId) || (fp && existingFps.has(fp))) return false;
-            existingIds.add(sId);
-            if (fp) existingFps.add(fp);
-            return true;
-          });
-
+          const dedup = createDeduplicator([
+            targetSong,
+            ...prev,
+            ...(historyQueue || []),
+            ...(playedHistory || [])
+          ]);
+          const newItems = recs.filter(s => dedup.add(s));
           return [...prev, ...newItems];
         });
       }
@@ -140,16 +137,24 @@ export const AudioPlayerProvider = ({ children }) => {
         if (curSong) pushToHistory(curSong);
         setAudioLoading(true);
         try {
-          const { getAutoplayRecommendations } = await import('../api/apiService');
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Autoplay timeout')), 4000));
+          const { getAutoplayRecommendations, createDeduplicator } = await import('../api/apiService');
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Autoplay timeout')), 5000));
+          const excludedContext = [curSong, ...(historyQueue || []), ...(playedHistory || [])];
           const recs = await Promise.race([
-            getAutoplayRecommendations(curSong, playedHistory.slice(0, 25), 15),
+            getAutoplayRecommendations(curSong, excludedContext, 16),
             timeoutPromise
           ]);
           if (recs && recs.length > 0) {
-            const next = recs[0];
-            setQueue(recs.slice(1));
-            playSong(next, false);
+            const dedup = createDeduplicator([curSong, ...(historyQueue || []), ...(playedHistory || [])]);
+            const uniqueRecs = recs.filter(s => dedup.add(s));
+            if (uniqueRecs.length > 0) {
+              const next = uniqueRecs[0];
+              setQueue(uniqueRecs.slice(1));
+              playSong(next, false);
+            } else {
+              setPlaying(false);
+              setAudioLoading(false);
+            }
           } else {
             setPlaying(false);
             setAudioLoading(false);
@@ -445,16 +450,23 @@ export const AudioPlayerProvider = ({ children }) => {
       if (curSong) pushToHistory(curSong);
       setAudioLoading(true);
       try {
-        const { getAutoplayRecommendations } = await import('../api/apiService');
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Autoplay timeout')), 4000));
+        const { getAutoplayRecommendations, createDeduplicator } = await import('../api/apiService');
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Autoplay timeout')), 5000));
+        const excludedContext = [curSong, ...(historyQueue || []), ...(playedHistory || [])];
         const recs = await Promise.race([
-          getAutoplayRecommendations(curSong, playedHistory.slice(0, 25), 15),
+          getAutoplayRecommendations(curSong, excludedContext, 16),
           timeoutPromise
         ]);
         if (recs && recs.length > 0) {
-          const next = recs[0];
-          setQueue(recs.slice(1));
-          playSong(next, false);
+          const dedup = createDeduplicator([curSong, ...(historyQueue || []), ...(playedHistory || [])]);
+          const uniqueRecs = recs.filter(s => dedup.add(s));
+          if (uniqueRecs.length > 0) {
+            const next = uniqueRecs[0];
+            setQueue(uniqueRecs.slice(1));
+            playSong(next, false);
+          } else {
+            setAudioLoading(false);
+          }
         } else {
           setAudioLoading(false);
         }

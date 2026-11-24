@@ -59,7 +59,7 @@ export default function FooterPlayer() {
     current, playing, audioLoading, playSong, togglePlay, progress, duration, seek, toggleLoop, loop, volume, setVolume, isMuted, toggleMute,
     analyserNode, pannerVal, setPannerVal, playPrevious, playNext
   } = useAudioPlayer();
-  const { queue, setQueue, reorderQueue, removeFromQueue, isShuffle, toggleShuffle, isAutoPlay, toggleAutoPlay } = useQueue();
+  const { queue, setQueue, reorderQueue, removeFromQueue, isShuffle, toggleShuffle, isAutoPlay, toggleAutoPlay, pushToHistory } = useQueue();
 
   const [openFull, setOpenFull] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
@@ -1200,7 +1200,7 @@ export default function FooterPlayer() {
                                       ref={drag.innerRef}
                                       {...drag.draggableProps}
                                       className={`fs-queue-item${snapshot.isDragging ? ' fs-queue-dragging' : ''}`}
-                                      onClick={() => { playSong(track); setQueue(queue.slice(i + 1)); }}
+                                      onClick={() => { if (current) pushToHistory(current); playSong(track, false); setQueue(queue.slice(i + 1)); }}
                                     >
                                       {/* Drag handle */}
                                       <div
@@ -1397,7 +1397,7 @@ export default function FooterPlayer() {
         <MenuItem onClick={() => { removeFromQueue(selectedId); closeMenu(); }}>
           <CloseIcon fontSize="small" /> Remove from Queue
         </MenuItem>
-        <MenuItem onClick={() => { if (selectedSong) { playSong(selectedSong); setQueue(queue.filter(s => s.id !== selectedId)); } closeMenu(); }}>
+        <MenuItem onClick={() => { if (selectedSong) { if (current) pushToHistory(current); playSong(selectedSong, false); setQueue(queue.filter(s => s.id !== selectedId)); } closeMenu(); }}>
           <PlayArrowIcon fontSize="small" /> Play Now
         </MenuItem>
         {selectedSong && (
