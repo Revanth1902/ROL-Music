@@ -9,7 +9,7 @@ import { downloadSongWithMetadata } from '../../utils/downloadSong'
 // React Icons
 import { MdMoreVert } from 'react-icons/md'
 import { BsMusicNoteList, BsFillSkipEndFill } from 'react-icons/bs'
-import { MdAlbum, MdPerson, MdShare, MdDownload } from 'react-icons/md'
+import { MdAlbum, MdPerson, MdShare, MdDownload, MdPlaylistAdd } from 'react-icons/md'
 import { TbLoader2 } from 'react-icons/tb'
 
 // ─── Resolve src with 3-layer fallback ───────────────
@@ -120,6 +120,14 @@ export default function ThreeDotMenu({ song }) {
         <MenuItem onClick={handlePlayNext}>
           <BsFillSkipEndFill className="tdm-icon" />
           Play Next
+        </MenuItem>
+
+        <MenuItem onClick={() => {
+          close();
+          window.dispatchEvent(new CustomEvent('rol_open_playlist_modal', { detail: song }));
+        }}>
+          <MdPlaylistAdd className="tdm-icon" />
+          Add to Playlist
         </MenuItem>
 
         {song?.albumId && (

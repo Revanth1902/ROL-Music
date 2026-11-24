@@ -85,11 +85,35 @@ export default function Playlists() {
 
   return (
     <Box className="page-container">
-      <div className="page-header">
-        <Typography variant="h4" className="page-title">🎧 Playlists</Typography>
-        <Typography className="page-sub">
-          {loginType === 'user' ? 'Your saved playlists' : query.trim() ? `Results for "${query}"` : `Trending · ${activeLangs.map(c => LANGUAGE_MAP[c] || c).join(', ')}`}
-        </Typography>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <Typography variant="h4" className="page-title">🎧 Playlists</Typography>
+          <Typography className="page-sub">
+            {loginType === 'user' ? 'Your saved playlists' : query.trim() ? `Results for "${query}"` : `Trending · ${activeLangs.map(c => LANGUAGE_MAP[c] || c).join(', ')}`}
+          </Typography>
+        </div>
+        {loginType === 'user' && (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('rol_open_playlist_modal', { detail: { tab: 1 } }))}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'linear-gradient(135deg, #6c63ff 0%, #8b5cf6 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 10,
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(108, 99, 255, 0.4)',
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            <span>+</span> New Playlist
+          </button>
+        )}
       </div>
 
       <div className="page-search-wrap">

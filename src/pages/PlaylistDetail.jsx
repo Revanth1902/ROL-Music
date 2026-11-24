@@ -4,6 +4,8 @@ import { Box, Typography, Skeleton, Divider, CircularProgress } from '@mui/mater
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import ShuffleIcon from '@mui/icons-material/Shuffle'
+import LockIcon from '@mui/icons-material/Lock'
+import PublicIcon from '@mui/icons-material/Public'
 import { getPlaylistDetails } from '../api/authApi'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
 import { useQueue } from '../contexts/QueueContext'
@@ -106,7 +108,39 @@ export default function PlaylistDetail() {
                 <div className="detail-meta">
                     <span className="detail-type-badge">Playlist</span>
                     <h1 className="detail-title">{playlist.title}</h1>
-                    <p className="detail-sub">{playlist.privacy || 'private'}</p>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '6px 0 10px' }}>
+                        {(playlist.privacy || 'private').toLowerCase() === 'private' ? (
+                            <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                padding: '3px 10px',
+                                borderRadius: 8,
+                                background: 'rgba(239, 68, 68, 0.14)',
+                                border: '1px solid rgba(239, 68, 68, 0.35)',
+                                color: '#f87171',
+                                fontSize: '0.75rem',
+                                fontWeight: 700
+                            }}>
+                                <LockIcon sx={{ fontSize: '0.85rem', color: '#ef4444' }} /> Private Playlist
+                            </span>
+                        ) : (
+                            <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                padding: '3px 10px',
+                                borderRadius: 8,
+                                background: 'rgba(34, 197, 94, 0.14)',
+                                border: '1px solid rgba(34, 197, 94, 0.35)',
+                                color: '#4ade80',
+                                fontSize: '0.75rem',
+                                fontWeight: 700
+                            }}>
+                                <PublicIcon sx={{ fontSize: '0.85rem', color: '#22c55e' }} /> Public Playlist
+                            </span>
+                        )}
+                    </div>
                     {playlist.description && (
                         <p className="detail-sub" style={{ maxWidth: 400, fontSize: '0.82rem', opacity: 0.7, whiteSpace: 'pre-line' }}>
                             {playlist.description}
