@@ -5,8 +5,11 @@ import { searchArtists, searchAlbums } from "../../api/apiService";
 import { downloadSongWithMetadata, subscribeDownloadProgress } from "../../utils/downloadSong";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
-import { Box, Typography, Menu, MenuItem, LinearProgress } from "@mui/material";
-import { CircularProgress } from "@mui/material";
+import { Box, Typography, Menu, MenuItem, LinearProgress, CircularProgress, Dialog, DialogTitle, DialogContent, TextField, Button, IconButton } from "@mui/material";
+import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
+import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import { useAuth } from "../../contexts/AuthContext";
+import { getPlaylists, createPlaylist, addSongToPlaylist } from "../../api/authApi";
 
 // MUI Icons
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -76,6 +79,110 @@ export default function FooterPlayer() {
   const navigate = useNavigate();
   const isHistoryPushedRef = useRef(false);
   const prevPathRef = useRef(location.pathname);
+
+  // Auth & Like / Playlist states
+  const { loginType, token, toggleLike, isSongLiked, openAuthModal } = useAuth();
+  const isLiked = useMemo(() => isSongLiked(current), [isSongLiked, current]);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const [likeAnim, setLikeAnim] = useState(false);
+
+  // Playlist Dialog State
+  const [playlistModalOpen, setPlaylistModalOpen] = useState(false);
+  const [userPlaylists, setUserPlaylists] = useState([]);
+  const [playlistLoading, setPlaylistLoading] = useState(false);
+  const [playlistFeedback, setPlaylistFeedback] = useState('');
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [newPlaylistPrivacy, setNewPlaylistPrivacy] = useState('private');
+  const [addingToId, setAddingToId] = useState(null);
+  const [addedSuccessId, setAddedSuccessId] = useState(null);
+
+  const handleLike = async (e) => {
+    e?.stopPropagation();
+    if (loginType !== 'user') {
+      openAuthModal('Sign in to like songs and save them to your library');
+      triggerHaptic(15);
+      return;
+    }
+
+    if (!current || isLikeLoading) return;
+    setIsLikeLoading(true);
+    setLikeAnim(true);
+    triggerHaptic(25);
+
+    try {
+      await toggleLike(current);
+    } catch (err) {
+      console.warn('[handleLike error]', err);
+    } finally {
+      setIsLikeLoading(false);
+      setTimeout(() => setLikeAnim(false), 600);
+    }
+  };
+
+  const handleOpenPlaylist = async (e) => {
+    e?.stopPropagation();
+    if (loginType !== 'user') {
+      openAuthModal('Sign in to create custom playlists and add songs');
+      triggerHaptic(15);
+      return;
+    }
+
+    setPlaylistModalOpen(true);
+    setPlaylistFeedback('');
+    setPlaylistLoading(true);
+    try {
+      const data = await getPlaylists(token);
+      setUserPlaylists(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('[getPlaylists error]', err);
+    } finally {
+      setPlaylistLoading(false);
+    }
+  };
+
+  const handleAddToExistingPlaylist = async (playlistId, playlistTitle) => {
+    if (!current) return;
+    setAddingToId(playlistId);
+    setPlaylistFeedback('');
+    try {
+      await addSongToPlaylist(playlistId, current.id || current._id || current.sourceId, token, current);
+      setAddedSuccessId(playlistId);
+      setPlaylistFeedback(`Added to "${playlistTitle}"!`);
+      triggerHaptic(20);
+      setTimeout(() => {
+        setPlaylistModalOpen(false);
+        setAddedSuccessId(null);
+        setAddingToId(null);
+      }, 900);
+    } catch (err) {
+      setPlaylistFeedback(err.message || 'Could not add song to playlist');
+      setAddingToId(null);
+    }
+  };
+
+  const handleCreateAndAddPlaylist = async (e) => {
+    e.preventDefault();
+    if (!newPlaylistName.trim()) return;
+    setPlaylistLoading(true);
+    setPlaylistFeedback('');
+    try {
+      const created = await createPlaylist({ playlistName: newPlaylistName.trim(), privacy: newPlaylistPrivacy }, token);
+      const targetId = created?.data?._id || created?.data?.id || created?._id || created?.id;
+      if (targetId && current) {
+        await addSongToPlaylist(targetId, current.id || current._id || current.sourceId, token, current);
+      }
+      setPlaylistFeedback(`Playlist "${newPlaylistName.trim()}" created!`);
+      setNewPlaylistName('');
+      triggerHaptic(25);
+      const updated = await getPlaylists(token);
+      setUserPlaylists(Array.isArray(updated) ? updated : []);
+      setTimeout(() => setPlaylistModalOpen(false), 900);
+    } catch (err) {
+      setPlaylistFeedback(err.message || 'Could not create playlist');
+    } finally {
+      setPlaylistLoading(false);
+    }
+  };
 
   // Subscribe to global download progress (ThreeDotMenu, FooterPlayer, etc.)
   useEffect(() => {
@@ -848,6 +955,36 @@ export default function FooterPlayer() {
                         </div>
                       )}
                     </div>
+
+                    {/* ── Info Actions (Like & Playlist for Fullscreen Player) ── */}
+                    <div className="fs-info-actions">
+                      <button
+                        className={`fs-action-icon-btn fs-like-btn ${isLiked ? 'liked' : ''} ${likeAnim ? 'fs-like-pop' : ''}`}
+                        onClick={handleLike}
+                        title={loginType === 'user' ? (isLiked ? 'Unlike song' : 'Like song') : 'Log in to like song'}
+                        aria-label={isLiked ? 'Unlike song' : 'Like song'}
+                      >
+                        {isLikeLoading ? (
+                          <div className="fs-like-loading-wrap">
+                            <CircularProgress size={24} thickness={4.5} sx={{ color: '#ff3366', position: 'absolute' }} />
+                            <FavoriteIcon className="fs-like-pulse-icon" />
+                          </div>
+                        ) : isLiked ? (
+                          <FavoriteIcon sx={{ fontSize: '1.45rem', color: '#ff3366' }} />
+                        ) : (
+                          <FavoriteBorderIcon sx={{ fontSize: '1.45rem' }} />
+                        )}
+                      </button>
+
+                      <button
+                        className="fs-action-icon-btn fs-playlist-btn"
+                        onClick={handleOpenPlaylist}
+                        title={loginType === 'user' ? 'Add to Playlist' : 'Log in to add to playlist'}
+                        aria-label="Add to Playlist"
+                      >
+                        <PlaylistAddIcon sx={{ fontSize: '1.45rem' }} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* ── Wave Seekbar ── */}
@@ -933,6 +1070,10 @@ export default function FooterPlayer() {
                     <button className="fs-action-btn" onClick={() => setShowQueue(true)}>
                       <QueueMusicIcon className="fa-icon" />
                       <span>Queue</span>
+                    </button>
+                    <button className="fs-action-btn" onClick={handleOpenPlaylist}>
+                      <PlaylistAddIcon className="fa-icon" />
+                      <span>Playlist</span>
                     </button>
                     <button className="fs-action-btn" onClick={() => shareSong(current)}>
                       <ShareIcon className="fa-icon" />
@@ -1193,7 +1334,174 @@ export default function FooterPlayer() {
             <DownloadIcon fontSize="small" /> Download
           </MenuItem>
         )}
-      </Menu>
+      {/* ── Add to Playlist Dialog (Fullscreen Player & Global) ── */}
+      <Dialog
+        open={playlistModalOpen}
+        onClose={() => setPlaylistModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'rgba(14, 18, 34, 0.96)',
+            backdropFilter: 'blur(28px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '20px',
+            color: '#ffffff',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.85)',
+            p: 1,
+          }
+        }}
+        sx={{ zIndex: 99999 }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, color: '#fff', fontWeight: 700 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PlaylistAddIcon sx={{ color: '#6c63ff' }} />
+            <span>Add to Playlist</span>
+          </Box>
+          <IconButton size="small" onClick={() => setPlaylistModalOpen(false)} sx={{ color: 'rgba(255,255,255,0.6)' }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ color: 'rgba(255,255,255,0.85)', pt: '10px !important' }}>
+          {playlistLoading ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1.5 }}>
+              <CircularProgress size={32} sx={{ color: '#6c63ff' }} />
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>Loading playlists...</Typography>
+            </Box>
+          ) : (
+            <>
+              {/* Existing Playlists List */}
+              {userPlaylists.length > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2.5, maxHeight: '200px', overflowY: 'auto', pr: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 600 }}>
+                    Select Playlist
+                  </Typography>
+                  {userPlaylists.map((pl) => {
+                    const plId = pl._id || pl.id;
+                    const plName = pl.playlistName || pl.title || pl.name || 'Untitled Playlist';
+                    const isAdding = addingToId === plId;
+                    const isSuccess = addedSuccessId === plId;
+
+                    return (
+                      <Button
+                        key={plId}
+                        variant="outlined"
+                        fullWidth
+                        disabled={isAdding}
+                        onClick={() => handleAddToExistingPlaylist(plId, plName)}
+                        sx={{
+                          justifyContent: 'space-between',
+                          textAlign: 'left',
+                          color: '#fff',
+                          borderColor: isSuccess ? '#10b981' : 'rgba(255,255,255,0.12)',
+                          background: isSuccess ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.03)',
+                          borderRadius: '12px',
+                          py: 1,
+                          px: 1.5,
+                          textTransform: 'none',
+                          fontWeight: 500,
+                          '&:hover': {
+                            background: 'rgba(108, 99, 255, 0.15)',
+                            borderColor: '#6c63ff',
+                          }
+                        }}
+                      >
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{plName}</span>
+                        {isSuccess ? (
+                          <CheckCircleIcon sx={{ color: '#10b981', fontSize: '1.2rem', ml: 1 }} />
+                        ) : isAdding ? (
+                          <CircularProgress size={18} sx={{ color: '#6c63ff', ml: 1 }} />
+                        ) : (
+                          <PlaylistAddIcon sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.2rem', ml: 1 }} />
+                        )}
+                      </Button>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Box sx={{ py: 1.5, textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                  No playlists found. Create your first playlist below!
+                </Box>
+              )}
+
+              {/* Create New Playlist Form */}
+              <Box component="form" onSubmit={handleCreateAndAddPlaylist} sx={{ display: 'grid', gap: 1.5, pt: 1, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 600 }}>
+                  Create New Playlist
+                </Typography>
+                <TextField
+                  placeholder="Playlist name"
+                  size="small"
+                  fullWidth
+                  value={newPlaylistName}
+                  onChange={e => setNewPlaylistName(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      background: 'rgba(255,255,255,0.06)',
+                      borderRadius: '10px',
+                      color: 'white',
+                      '& fieldset': { borderColor: 'rgba(255,255,255,0.14)' },
+                      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.25)' },
+                      '&.Mui-focused fieldset': { borderColor: '#6c63ff' },
+                    },
+                    '& .MuiInputBase-input': { color: 'white', fontSize: '0.9rem' },
+                  }}
+                />
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  value={newPlaylistPrivacy}
+                  onChange={e => setNewPlaylistPrivacy(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      background: 'rgba(255,255,255,0.06)',
+                      borderRadius: '10px',
+                      color: 'white',
+                      '& fieldset': { borderColor: 'rgba(255,255,255,0.14)' },
+                    },
+                    '& .MuiSelect-select': { color: 'white', fontSize: '0.9rem' },
+                  }}
+                >
+                  <MenuItem value="private">Private</MenuItem>
+                  <MenuItem value="public">Public</MenuItem>
+                </TextField>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={!newPlaylistName.trim() || playlistLoading}
+                  sx={{
+                    background: '#6c63ff',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderRadius: '10px',
+                    py: 1,
+                    '&:hover': { background: '#574fe7' }
+                  }}
+                >
+                  Create & Add Song
+                </Button>
+              </Box>
+
+              {playlistFeedback && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    mt: 1.5,
+                    textAlign: 'center',
+                    color: playlistFeedback.includes('Added') || playlistFeedback.includes('created') ? '#10b981' : '#f87171',
+                    fontWeight: 600
+                  }}
+                >
+                  {playlistFeedback}
+                </Typography>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

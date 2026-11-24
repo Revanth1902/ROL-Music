@@ -606,8 +606,138 @@
 .fs-info-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.fs-action-icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+  touch-action: manipulation;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.25s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fs-action-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  transform: scale(1.08);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.fs-action-icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* Like Button */
+.fs-like-btn {
+  position: relative;
+}
+
+.fs-like-btn.liked {
+  color: #ff3366;
+  background: rgba(255, 51, 102, 0.16);
+  border-color: rgba(255, 51, 102, 0.4);
+  box-shadow: 0 0 16px rgba(255, 51, 102, 0.35);
+}
+
+.fs-like-btn.liked:hover {
+  background: rgba(255, 51, 102, 0.24);
+  box-shadow: 0 0 22px rgba(255, 51, 102, 0.5);
+  color: #ff4d79;
+}
+
+/* Heart Pop Transition Animation */
+.fs-like-pop {
+  animation: heartPop 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, heartGlowBurst 0.6s ease-out;
+}
+
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(0.72);
+  }
+  50% {
+    transform: scale(1.36) rotate(-7deg);
+  }
+  75% {
+    transform: scale(0.92) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes heartGlowBurst {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.7);
+  }
+  60% {
+    box-shadow: 0 0 0 16px rgba(255, 51, 102, 0);
+  }
+  100% {
+    box-shadow: 0 0 16px rgba(255, 51, 102, 0.35);
+  }
+}
+
+/* Animated Liked Loading State */
+.fs-like-loading-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fs-like-pulse-icon {
+  animation: heartBeatPulse 0.85s infinite ease-in-out;
+  color: #ff3366 !important;
+  font-size: 1.15rem !important;
+}
+
+@keyframes heartBeatPulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.6;
+    filter: drop-shadow(0 0 2px rgba(255, 51, 102, 0.4));
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 1;
+    filter: drop-shadow(0 0 10px rgba(255, 51, 102, 0.9));
+  }
+  100% {
+    transform: scale(0.85);
+    opacity: 0.6;
+    filter: drop-shadow(0 0 2px rgba(255, 51, 102, 0.4));
+  }
+}
+
+/* Playlist Button */
+.fs-playlist-btn:hover {
+  border-color: rgba(108, 99, 255, 0.5);
+  color: #a78bfa;
+}
+
+.fs-playlist-btn.added {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 .fs-song-title {
