@@ -19,16 +19,6 @@ export const AudioPlayerProvider = ({ children }) => {
   const { queue, setQueue, isAutoPlay, playedHistory, addPlayedId, historyQueue, setHistoryQueue, pushToHistory } = useQueue();
   const prefetchingRef = useRef(false);
 
-  // References to avoid stale closures in media element listeners
-  const queueRef = useRef(queue);
-  useEffect(() => { queueRef.current = queue; }, [queue]);
-
-  const currentRef = useRef(current);
-  useEffect(() => { currentRef.current = current; }, [current]);
-
-  const isAutoPlayRef = useRef(isAutoPlay);
-  useEffect(() => { isAutoPlayRef.current = isAutoPlay; }, [isAutoPlay]);
-
   // Advanced Web Audio graph nodes
   const audioCtxRef = useRef(null);
   const sourceRef = useRef(null);
@@ -69,29 +59,31 @@ export const AudioPlayerProvider = ({ children }) => {
   const [eqValues, setEqValues] = useState(EQ_PRESETS.Flat);
   const { user, loginType, token } = useAuth();
 
-  const prefetchRecommendationsIfNeeded = async (targetSong, currentQueue = null) => {
-    const activeQ = currentQueue !== null ? currentQueue : queueRef.current;
-    if (!isAutoPlayRef.current || !targetSong || activeQ.length > 4 || prefetchingRef.current) return;
+  const prefetchRecommendationsIfNeeded = async (targetSong, currentQueue = queue) => {
+    if (!isAutoPlay || !targetSong || currentQueue.length > 3 || prefetchingRef.current) return;
 
     prefetchingRef.current = true;
     try {
-      const { getAutoplayRecommendations, createDeduplicator } = await import('../api/apiService');
-      const excludedContext = [
-        targetSong,
-        ...activeQ,
-        ...(historyQueue || []),
-        ...(playedHistory || [])
-      ];
-      const recs = await getAutoplayRecommendations(targetSong, excludedContext, 16);
+      const { getAutoplayRecommendations, getSongFingerprint } = await import('../api/apiService');
+      const excluded = [...playedHistory, targetSong.id, ...currentQueue.map(s => s.id)];
+      const recs = await getAutoplayRecommendations(targetSong, excluded, 20);
       if (recs && recs.length > 0) {
         setQueue(prev => {
-          const dedup = createDeduplicator([
-            targetSong,
-            ...prev,
-            ...(historyQueue || []),
-            ...(playedHistory || [])
-          ]);
-          const newItems = recs.filter(s => dedup.add(s));
+          const existingIds = new Set(prev.map(s => String(s.id)));
+          const existingFps = new Set(prev.map(s => getSongFingerprint(s)).filter(Boolean));
+          if (targetSong.id) existingIds.add(String(targetSong.id));
+          const targetFp = getSongFingerprint(targetSong);
+          if (targetFp) existingFps.add(targetFp);
+
+          const newItems = recs.filter(s => {
+            const sId = String(s.id);
+            const fp = getSongFingerprint(s);
+            if (existingIds.has(sId) || (fp && existingFps.has(fp))) return false;
+            existingIds.add(sId);
+            if (fp) existingFps.add(fp);
+            return true;
+          });
+
           return [...prev, ...newItems];
         });
       }
@@ -104,7 +96,7 @@ export const AudioPlayerProvider = ({ children }) => {
 
   // Pre-fetch recommendations when playing song with small queue
   useEffect(() => {
-    if (playing && current && isAutoPlay && queue.length <= 4) {
+    if (playing && current && isAutoPlay && queue.length <= 3) {
       prefetchRecommendationsIfNeeded(current, queue);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,64 +111,38 @@ export const AudioPlayerProvider = ({ children }) => {
     const onLoaded = () => setDuration(audio.duration || 0);
     const onEnd = async () => {
       if (loop) { audio.currentTime = 0; audio.play(); return; }
-      const currentQ = queueRef.current;
-      const curSong = currentRef.current;
-
-      if (currentQ.length > 0) {
-        const next = currentQ[0];
-        const remaining = currentQ.slice(1);
-        if (curSong) {
-          pushToHistory(curSong);
+      if (queue.length > 0) {
+        const next = queue[0];
+        const remaining = queue.slice(1);
+        if (current) {
+          pushToHistory(current);
         }
         setQueue(remaining);
         playSong(next, false);
-        if (remaining.length <= 4 && isAutoPlayRef.current) {
+        if (remaining.length <= 3 && isAutoPlay) {
           prefetchRecommendationsIfNeeded(next, remaining);
         }
-      } else if (isAutoPlayRef.current && curSong) {
-        if (curSong) pushToHistory(curSong);
+      } else if (isAutoPlay && current) {
+        if (current) pushToHistory(current);
         setAudioLoading(true);
         try {
-          const { getAutoplayRecommendations, createDeduplicator } = await import('../api/apiService');
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Autoplay timeout')), 5000));
-          const excludedContext = [curSong, ...(historyQueue || []), ...(playedHistory || [])];
-          const recs = await Promise.race([
-            getAutoplayRecommendations(curSong, excludedContext, 16),
-            timeoutPromise
-          ]);
+          const { getAutoplayRecommendations } = await import('../api/apiService');
+          const recs = await getAutoplayRecommendations(current, playedHistory, 20);
           if (recs && recs.length > 0) {
-            const dedup = createDeduplicator([curSong, ...(historyQueue || []), ...(playedHistory || [])]);
-            const uniqueRecs = recs.filter(s => dedup.add(s));
-            if (uniqueRecs.length > 0) {
-              const next = uniqueRecs[0];
-              setQueue(uniqueRecs.slice(1));
-              playSong(next, false);
-            } else {
-              setPlaying(false);
-              setAudioLoading(false);
-            }
+            const next = recs[0];
+            setQueue(recs.slice(1));
+            playSong(next, false);
           } else {
             setPlaying(false);
             setAudioLoading(false);
           }
         } catch (err) {
-          console.warn('[Autoplay onEnd fallback]:', err.message);
+          console.error('[Autoplay onEnd error]', err);
           setPlaying(false);
           setAudioLoading(false);
         }
       } else {
         setPlaying(false);
-      }
-    };
-
-    const onError = () => {
-      console.warn('[AudioPlayer] Audio playback error on:', currentRef.current?.title);
-      const currentQ = queueRef.current;
-      if (currentQ.length > 0 || isAutoPlayRef.current) {
-        playNext();
-      } else {
-        setPlaying(false);
-        setAudioLoading(false);
       }
     };
 
@@ -187,7 +153,6 @@ export const AudioPlayerProvider = ({ children }) => {
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onLoaded);
     audio.addEventListener("ended", onEnd);
-    audio.addEventListener("error", onError);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("canplay", onCanPlay);
     audio.addEventListener("playing", onPlaying);
@@ -196,13 +161,12 @@ export const AudioPlayerProvider = ({ children }) => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onLoaded);
       audio.removeEventListener("ended", onEnd);
-      audio.removeEventListener("error", onError);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("canplay", onCanPlay);
       audio.removeEventListener("playing", onPlaying);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loop]);
+  }, [loop, queue, setQueue, isAutoPlay, current, playedHistory]);
 
   // ── Init Web Audio Graph ──────────────────────────────────
   const initAudioGraph = () => {
@@ -310,13 +274,6 @@ export const AudioPlayerProvider = ({ children }) => {
       pushToHistory(current);
     }
 
-    // When the user explicitly picks a new song to play:
-    // Clear out old radio/autoplay recommendations from the previous seed track
-    // so upcoming autoplay songs match THIS newly selected song!
-    if (shouldPushHistory) {
-      setQueue(prev => prev.filter(s => !s.isAutoplayItem));
-    }
-
     // Assume it might need resolving
     let song = rawSong;
     const songId = song.id || song.sourceId || song._id;
@@ -377,14 +334,6 @@ export const AudioPlayerProvider = ({ children }) => {
       setPlaying(true);
       await syncPlayback(song);
       trackUserPlay(user?.id || user?._id || 'guest', song);
-
-      // Trigger prefetch for this song in background if autoplay is enabled
-      if (isAutoPlayRef.current) {
-        const remainingQ = shouldPushHistory ? queueRef.current.filter(s => !s.isAutoplayItem) : queueRef.current;
-        if (remainingQ.length <= 4) {
-          prefetchRecommendationsIfNeeded(song, remainingQ);
-        }
-      }
     } catch (err) {
       console.warn("[playSong] play() failed:", err.message);
       setPlaying(false);
@@ -432,50 +381,36 @@ export const AudioPlayerProvider = ({ children }) => {
   }, [progress, historyQueue, current, setQueue, setHistoryQueue]);
 
   const playNext = useCallback(async () => {
-    const currentQ = queueRef.current;
-    const curSong = currentRef.current;
-
-    if (currentQ && currentQ.length > 0) {
-      const next = currentQ[0];
-      const remaining = currentQ.slice(1);
-      if (curSong) {
-        pushToHistory(curSong);
+    if (queue && queue.length > 0) {
+      const next = queue[0];
+      const remaining = queue.slice(1);
+      if (current) {
+        pushToHistory(current);
       }
       setQueue(remaining);
       playSong(next, false);
-      if (remaining.length <= 4 && isAutoPlayRef.current) {
+      if (remaining.length <= 3 && isAutoPlay) {
         prefetchRecommendationsIfNeeded(next, remaining);
       }
-    } else if (isAutoPlayRef.current && curSong) {
-      if (curSong) pushToHistory(curSong);
+    } else if (isAutoPlay && current) {
+      if (current) pushToHistory(current);
       setAudioLoading(true);
       try {
-        const { getAutoplayRecommendations, createDeduplicator } = await import('../api/apiService');
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Autoplay timeout')), 5000));
-        const excludedContext = [curSong, ...(historyQueue || []), ...(playedHistory || [])];
-        const recs = await Promise.race([
-          getAutoplayRecommendations(curSong, excludedContext, 16),
-          timeoutPromise
-        ]);
+        const { getAutoplayRecommendations } = await import('../api/apiService');
+        const recs = await getAutoplayRecommendations(current, playedHistory, 20);
         if (recs && recs.length > 0) {
-          const dedup = createDeduplicator([curSong, ...(historyQueue || []), ...(playedHistory || [])]);
-          const uniqueRecs = recs.filter(s => dedup.add(s));
-          if (uniqueRecs.length > 0) {
-            const next = uniqueRecs[0];
-            setQueue(uniqueRecs.slice(1));
-            playSong(next, false);
-          } else {
-            setAudioLoading(false);
-          }
+          const next = recs[0];
+          setQueue(recs.slice(1));
+          playSong(next, false);
         } else {
           setAudioLoading(false);
         }
       } catch (err) {
-        console.warn('[playNext autoplay error]:', err.message);
+        console.error('[playNext autoplay error]', err);
         setAudioLoading(false);
       }
     }
-  }, [playedHistory, pushToHistory, setQueue]);
+  }, [queue, current, isAutoPlay, playedHistory, pushToHistory, setQueue]);
 
   // ── Audio Controls & Effects ─────────────────────────────
   const toggleKaraoke = () => {
