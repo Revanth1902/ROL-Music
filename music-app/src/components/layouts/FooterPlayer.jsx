@@ -112,41 +112,74 @@ export default function FooterPlayer() {
     return [];
   }, [current]);
 
+  const navigateFromFullscreen = useCallback((targetUrl) => {
+    // 1. Dismiss fullscreen UI state cleanly
+    setOpenFull(false);
+    setShowQueue(false);
+    setIsLyricsFlipped(false);
+
+    // 2. If a state was pushed to history to allow back-button to close fullscreen,
+    // replace that state with the target URL so we do not cause popstate race conditions
+    // or trigger an unintended history.back()
+    if (isHistoryPushedRef.current) {
+      isHistoryPushedRef.current = false;
+      navigate(targetUrl, { replace: true });
+    } else {
+      navigate(targetUrl);
+    }
+  }, [navigate]);
+
   const handleArtistClick = async (artist) => {
-    closeFullscreen();
-    if (artist.id) {
-      navigate(`/artist/${artist.id}`);
+    if (!artist) return;
+    const name = typeof artist === 'string' ? artist : artist.name;
+    if (!name) return;
+
+    let targetId = typeof artist === 'object' ? artist.id : '';
+    if (!targetId && current?.artistId && (name.toLowerCase() === (current.artistName || '').toLowerCase() || (current.artists?.[0]?.name || '').toLowerCase() === name.toLowerCase())) {
+      targetId = current.artistId;
+    }
+
+    if (targetId) {
+      navigateFromFullscreen(`/artist/${targetId}`);
       return;
     }
+
     try {
-      const res = await searchArtists(artist.name, 0, 1);
-      if (res?.results?.[0]?.id) {
-        navigate(`/artist/${res.results[0].id}`);
+      const res = await searchArtists(name, 0, 1);
+      const firstArtist = res?.results?.[0];
+      if (firstArtist?.id) {
+        navigateFromFullscreen(`/artist/${firstArtist.id}`);
         return;
       }
     } catch (e) {
-      console.warn('[handleArtistClick error]', e);
+      console.warn('[handleArtistClick search error]', e);
     }
-    navigate(`/songs?q=${encodeURIComponent(artist.name)}`);
+
+    navigateFromFullscreen(`/songs?q=${encodeURIComponent(name)}`);
   };
 
   const handleAlbumClick = async () => {
-    closeFullscreen();
-    if (current.albumId) {
-      navigate(`/album/${current.albumId}`);
+    if (!current) return;
+    const albumId = current.albumId;
+    const albumName = current.album;
+
+    if (albumId) {
+      navigateFromFullscreen(`/album/${albumId}`);
       return;
     }
-    if (current.album) {
+
+    if (albumName) {
       try {
-        const res = await searchAlbums(current.album, 0, 1);
-        if (res?.results?.[0]?.id) {
-          navigate(`/album/${res.results[0].id}`);
+        const res = await searchAlbums(albumName, 0, 1);
+        const firstAlbum = res?.results?.[0];
+        if (firstAlbum?.id) {
+          navigateFromFullscreen(`/album/${firstAlbum.id}`);
           return;
         }
       } catch (e) {
-        console.warn('[handleAlbumClick error]', e);
+        console.warn('[handleAlbumClick search error]', e);
       }
-      navigate(`/songs?q=${encodeURIComponent(current.album)}`);
+      navigateFromFullscreen(`/songs?q=${encodeURIComponent(albumName)}`);
     }
   };
 
@@ -775,6 +808,8 @@ export default function FooterPlayer() {
                             <React.Fragment key={artist.name + idx}>
                               <span
                                 className="fs-clickable-artist"
+                                role="button"
+                                tabIndex={0}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleArtistClick(artist);
@@ -785,13 +820,25 @@ export default function FooterPlayer() {
                               {idx < artistList.length - 1 && <span className="fs-artist-sep">, </span>}
                             </React.Fragment>
                           ))
-                        ) : (
-                          <span>{current.artistName}</span>
-                        )}
+                        ) : current?.artistName ? (
+                          <span
+                            className="fs-clickable-artist"
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleArtistClick({ name: current.artistName, id: current.artistId });
+                            }}
+                          >
+                            {current.artistName}
+                          </span>
+                        ) : null}
                       </div>
-                      {current.album && (
+                      {current?.album && (
                         <div
                           className="fs-song-album fs-clickable-album"
+                          role="button"
+                          tabIndex={0}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAlbumClick();

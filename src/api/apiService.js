@@ -152,10 +152,10 @@ export function normalizeSong(s) {
         id: s.id,
         title: decodeEntities(s.name || s.title || 'Unknown'),
         artistName,
-        artistId: primaryArtist.id || '',
+        artistId: primaryArtist.id || s.artistId || s.artist_id || s.more_info?.artist_id || '',
         artists: normalizedArtists,
-        albumId: s.album?.id || s.albumId || '',
-        album: decodeEntities(s.album?.name || (typeof s.album === 'string' ? s.album : '') || ''),
+        albumId: s.album?.id || s.albumId || s.album_id || s.more_info?.album_id || s.albumid || '',
+        album: decodeEntities(s.album?.name || s.more_info?.album || (typeof s.album === 'string' ? s.album : '') || ''),
         duration: Number(s.duration) || 0,
         language: s.language || '',
         src,
@@ -169,7 +169,7 @@ export function normalizeSong(s) {
 
 export function normalizeAlbum(a) {
     if (!a) return null;
-    const primaryArtists = a.artists?.primary || a.artists?.all || [];
+    const primaryArtists = a.artists?.primary || a.artists?.all || (Array.isArray(a.artists) ? a.artists : []) || [];
     return {
         id: a.id,
         title: decodeEntities(a.name || a.title || 'Unknown Album'),
@@ -201,16 +201,16 @@ export function normalizeArtist(a) {
     if (!a) return null;
     return {
         id: a.id,
-        name: decodeEntities(a.name || 'Unknown Artist'),
-        avatar: getBestImage(a.image),  // rol-backend uses .url
-        followerCount: Number(a.followerCount) || 0,
+        name: decodeEntities(a.name || a.title || 'Unknown Artist'),
+        avatar: getBestImage(a.image || a.avatar),
+        followerCount: Number(a.followerCount || a.fan_count || a.follower_count) || 0,
         bio: Array.isArray(a.bio)
             ? a.bio.map(b => decodeEntities(b.text || b)).join(' ')
             : decodeEntities(a.bio || ''),
         isVerified: Boolean(a.isVerified),
         dominantLanguage: a.dominantLanguage || '',
-        topSongs: (a.topSongs || []).map(normalizeSong).filter(Boolean),
-        topAlbums: (a.topAlbums || []).map(normalizeAlbum).filter(Boolean),
+        topSongs: (a.topSongs || a.songs || a.top_songs || []).map(normalizeSong).filter(Boolean),
+        topAlbums: (a.topAlbums || a.albums || a.top_albums || []).map(normalizeAlbum).filter(Boolean),
     };
 }
 
@@ -303,9 +303,9 @@ export async function getAlbumById(id) {
 // ── ARTIST ────────────────────────────────────────────
 export async function getArtistById(artistId) {
     if (!artistId) return null;
-    let data = await apiFetch(`/artists/${encodeURIComponent(artistId)}`);
+    let data = await apiFetch(`/artists?id=${encodeURIComponent(artistId)}`);
     if (!data || !data.id) {
-        data = await apiFetch(`/artists?id=${encodeURIComponent(artistId)}`);
+        data = await apiFetch(`/artists/${encodeURIComponent(artistId)}`);
     }
     if (data) {
         const artist = normalizeArtist(data);
@@ -317,9 +317,9 @@ export async function getArtistById(artistId) {
 
 export async function getArtistSongs(artistId, page = 1) {
     if (!artistId) return [];
-    let data = await apiFetch(`/artists/${encodeURIComponent(artistId)}/songs?page=${page}`);
+    let data = await apiFetch(`/artists?id=${encodeURIComponent(artistId)}&page=${page}`);
     if (!data || (Array.isArray(data) && data.length === 0)) {
-        data = await apiFetch(`/artists?id=${encodeURIComponent(artistId)}&page=${page}`);
+        data = await apiFetch(`/artists/${encodeURIComponent(artistId)}/songs?page=${page}`);
     }
     if (data) {
         const songs = data.songs || data.results || (Array.isArray(data) ? data : []);
@@ -442,45 +442,119 @@ export const LANGUAGES = [
     { code: 'ur', label: 'Urdu', native: 'اردو', flag: '🏳️' },
 ];
 
+// ── LANGUAGE AFFINITY DEFAULTS ────────────────────────
+const LANGUAGE_AFFINITY_MAP = {
+  hindi: ['Arijit Singh', 'Pritam', 'Atif Aslam', 'Shreya Ghoshal', 'KK', 'Mohit Chauhan', 'Jubin Nautiyal', 'Vishal Mishra'],
+  telugu: ['Sid Sriram', 'Anurag Kulkarni', 'Ram Miriyala', 'Devi Sri Prasad', 'Thaman S', 'Armaan Malik', 'Anirudh Ravichander'],
+  tamil: ['Anirudh Ravichander', 'Yuvan Shankar Raja', 'Harris Jayaraj', 'Sid Sriram', 'Santhosh Narayanan', 'Pradeep Kumar'],
+  punjabi: ['Sidhu Moose Wala', 'Karan Aujla', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'B Praak', 'Guru Randhawa'],
+  english: ['The Weeknd', 'Taylor Swift', 'Post Malone', 'Drake', 'Billie Eilish', 'Dua Lipa', 'Ed Sheeran', 'Coldplay'],
+  malayalam: ['Sushin Shyam', 'Hesham Abdul Wahab', 'Shaan Rahman', 'Gopi Sundar', 'Vineeth Sreenivasan'],
+  kannada: ['Ravi Basrur', 'B. Ajaneesh Loknath', 'Arjun Janya', 'Sanjith Hegde', 'Charan Raj'],
+  marathi: ['Ajay-Atul', 'Avadhoot Gupte', 'Swapnil Bandodkar', 'Adarsh Shinde'],
+  bengali: ['Anupam Roy', 'Arijit Singh', 'Shreya Ghoshal', 'Rupam Islam', 'Jeet Gannguli'],
+  bhojpuri: ['Pawan Singh', 'Khesari Lal Yadav', 'Shilpi Raj', 'Manoj Tiwari'],
+};
+
 // ── SPOTIFY-GRADE RELATED ARTISTS MATRIX ────────────────
 const RELATED_ARTISTS_MAP = {
-  // Hindi / Bollywood
-  'arijit singh': ['Pritam', 'Atif Aslam', 'Mohit Chauhan', 'Jubin Nautiyal', 'B Praak', 'Armaan Malik', 'Shreya Ghoshal', 'Sachin-Jigar'],
-  'pritam': ['Arijit Singh', 'Vishal-Shekhar', 'Amit Trivedi', 'Sachin-Jigar', 'Shankar-Ehsaan-Loy', 'Mithoon', 'KK'],
-  'atif aslam': ['Arijit Singh', 'Rahat Fateh Ali Khan', 'Mustafa Zahid', 'Ankit Tiwari', 'KK', 'Mohit Chauhan'],
-  'jubin nautiyal': ['Arijit Singh', 'B Praak', 'Sachet Tandon', 'Tulsi Kumar', 'Armaan Malik'],
-  'b praak': ['Jaani', 'Jubin Nautiyal', 'Arijit Singh', 'Guru Randhawa', 'Harrdy Sandhu'],
-  'shreya ghoshal': ['Sunidhi Chauhan', 'Alka Yagnik', 'Shaan', 'Sonu Nigam', 'Arijit Singh'],
-  'sonu nigam': ['Shaan', 'Udit Narayan', 'Kumar Sanu', 'Alka Yagnik', 'Shreya Ghoshal', 'A.R. Rahman'],
-  'a.r. rahman': ['Arijit Singh', 'Shankar-Ehsaan-Loy', 'Amit Trivedi', 'Mohit Chauhan', 'Harris Jayaraj'],
-  'badshah': ['Yo Yo Honey Singh', 'Raftaar', 'Guru Randhawa', 'Divine', 'King', 'MC Stan'],
-  'king': ['Anuv Jain', 'Zaeden', 'Mitraz', 'Ritviz', 'Jasleen Royal', 'Kaka'],
-  'anuv jain': ['Zaeden', 'King', 'Prateek Kuhad', 'When Chai Met Toast', 'Mitraz', 'The Local Train'],
-  'prateek kuhad': ['Anuv Jain', 'When Chai Met Toast', 'The Local Train', 'Lifafa'],
+  // Hindi / Bollywood Modern & Romantic
+  'arijit singh': ['Pritam', 'Atif Aslam', 'Mohit Chauhan', 'Jubin Nautiyal', 'B Praak', 'Armaan Malik', 'Shreya Ghoshal', 'Sachin-Jigar', 'Vishal Mishra', 'KK'],
+  'pritam': ['Arijit Singh', 'Vishal-Shekhar', 'Amit Trivedi', 'Sachin-Jigar', 'Shankar-Ehsaan-Loy', 'Mithoon', 'KK', 'Atif Aslam'],
+  'atif aslam': ['Arijit Singh', 'Rahat Fateh Ali Khan', 'Mustafa Zahid', 'Ankit Tiwari', 'KK', 'Mohit Chauhan', 'Jal The Band', 'Pritam'],
+  'jubin nautiyal': ['Arijit Singh', 'B Praak', 'Sachet Tandon', 'Tulsi Kumar', 'Armaan Malik', 'Stebin Ben', 'Mithoon'],
+  'b praak': ['Jaani', 'Jubin Nautiyal', 'Arijit Singh', 'Guru Randhawa', 'Harrdy Sandhu', 'Jasleen Royal', 'Ammy Virk'],
+  'shreya ghoshal': ['Sunidhi Chauhan', 'Alka Yagnik', 'Shaan', 'Sonu Nigam', 'Arijit Singh', 'Monali Thakur', 'Shilpa Rao'],
+  'sunidhi chauhan': ['Shreya Ghoshal', 'Neha Kakkar', 'Monali Thakur', 'Alka Yagnik', 'Vishal Dadlani'],
+  'sonu nigam': ['Shaan', 'Udit Narayan', 'Kumar Sanu', 'Alka Yagnik', 'Shreya Ghoshal', 'A.R. Rahman', 'Abhijeet Bhattacharya', 'KK'],
+  'kumar sanu': ['Udit Narayan', 'Alka Yagnik', 'Anuradha Paudwal', 'Sonu Nigam', 'Sadhana Sargam', 'Nadeem-Shravan', 'Abhijeet Bhattacharya'],
+  'udit narayan': ['Kumar Sanu', 'Alka Yagnik', 'Kavita Krishnamurthy', 'Sonu Nigam', 'Jatin-Lalit', 'Anuradha Paudwal'],
+  'alka yagnik': ['Kumar Sanu', 'Udit Narayan', 'Kavita Krishnamurthy', 'Sonu Nigam', 'Shreya Ghoshal', 'Sadhana Sargam'],
+  'kk': ['Mohit Chauhan', 'Shaan', 'Lucky Ali', 'Atif Aslam', 'Pritam', 'Vishal-Shekhar', 'Javed Ali', 'Arijit Singh'],
+  'mohit chauhan': ['Lucky Ali', 'KK', 'Papon', 'Arijit Singh', 'A.R. Rahman', 'Rabbi Shergill', 'Shaan'],
+  'lucky ali': ['Mohit Chauhan', 'KK', 'Euphoria', 'Silk Route', 'The Local Train', 'Strings', 'Papon'],
+  'a.r. rahman': ['Shankar-Ehsaan-Loy', 'Amit Trivedi', 'Mohit Chauhan', 'Harris Jayaraj', 'Javed Ali', 'Hariharan', 'Arijit Singh'],
+  'vishal mishra': ['Arijit Singh', 'Jubin Nautiyal', 'B Praak', 'Sachet-Parampara', 'Mithoon', 'Sachin-Jigar'],
+  'sachin-jigar': ['Amit Trivedi', 'Pritam', 'Vishal-Shekhar', 'Tanishk Bagchi', 'Arijit Singh'],
+  'amit trivedi': ['Sachin-Jigar', 'Shankar-Ehsaan-Loy', 'Sneha Khanwalkar', 'A.R. Rahman', 'Pritam'],
+  'armaan malik': ['Amaal Mallik', 'Arijit Singh', 'Darshan Raval', 'Jubin Nautiyal', 'Sanam', 'Sid Sriram'],
+  'darshan raval': ['Armaan Malik', 'Asim Azhar', 'Stebin Ben', 'Arijit Singh', 'Jubin Nautiyal'],
 
-  // English / Western / Pop / Hip-Hop
-  'the weeknd': ['Drake', 'Post Malone', 'Travis Scott', 'Frank Ocean', 'Lana Del Rey', 'Kendrick Lamar', 'Dua Lipa'],
-  'taylor swift': ['Olivia Rodrigo', 'Gracie Abrams', 'Sabrina Carpenter', 'Billie Eilish', 'Ed Sheeran', 'Lorde'],
-  'drake': ['Travis Scott', '21 Savage', 'Future', 'The Weeknd', 'J. Cole', 'Kendrick Lamar', 'Kanye West'],
-  'travis scott': ['Drake', 'Don Toliver', 'Playboi Carti', 'Metro Boomin', 'Future', '21 Savage'],
-  'post malone': ['The Weeknd', 'Juice WRLD', 'Swae Lee', 'Drake', 'Twenty One Pilots', 'Khalid'],
-  'dua lipa': ['Ariana Grande', 'Katy Perry', 'Ava Max', 'Billie Eilish', 'Bebe Rexha', 'Doja Cat'],
-  'billie eilish': ['Olivia Rodrigo', 'Finneas', 'Lana Del Rey', 'Girl in Red', 'Lorde', 'Phoebe Bridgers'],
-  'ed sheeran': ['Shawn Mendes', 'Charlie Puth', 'Justin Bieber', 'James Arthur', 'Lewis Capaldi', 'OneRepublic'],
-  'coldplay': ['Imagine Dragons', 'OneRepublic', 'Maroon 5', 'The Chainsmokers', 'Bastille'],
-  'imagine dragons': ['Coldplay', 'OneRepublic', 'Fall Out Boy', 'Panic! At The Disco', 'Twenty One Pilots'],
+  // Hindi Indie / Lo-Fi / Acoustic
+  'anuv jain': ['Zaeden', 'King', 'Prateek Kuhad', 'When Chai Met Toast', 'Mitraz', 'The Local Train', 'Twin Strings'],
+  'prateek kuhad': ['Anuv Jain', 'When Chai Met Toast', 'The Local Train', 'Lifafa', 'Bharat Chauhan', 'Jasleen Royal'],
+  'the local train': ['Parvaaz', 'Lifafa', 'When Chai Met Toast', 'Anuv Jain', 'Indian Ocean', 'Lucky Ali'],
+  'king': ['Anuv Jain', 'Zaeden', 'Mitraz', 'Ritviz', 'Jasleen Royal', 'Badshah', 'Paradox'],
+  'ritviz': ['Nucleya', 'Lost Stories', 'Mitraz', 'Zaeden', 'OAFF', 'Savera', 'King'],
+  'mitraz': ['Zaeden', 'King', 'Anuv Jain', 'Twin Strings', 'Aditya Rikhari', 'Ritviz'],
+  'aditya rikhari': ['Mitraz', 'Anuv Jain', 'Zaeden', 'Osho Jain', 'Piyush Bhisekar', 'Twin Strings'],
+  'zaeden': ['King', 'Lost Stories', 'Anuv Jain', 'Ritviz', 'Mitraz', 'Twin Strings'],
+  'when chai met toast': ['Prateek Kuhad', 'Anuv Jain', 'The Local Train', 'Sanah Moidutty'],
+
+  // Desi Hip-Hop / Rap
+  'badshah': ['Yo Yo Honey Singh', 'Raftaar', 'Guru Randhawa', 'Divine', 'King', 'MC Stan', 'Ikka'],
+  'yo yo honey singh': ['Badshah', 'Raftaar', 'Guru Randhawa', 'Imran Khan', 'Alfaaz', 'Mika Singh'],
+  'divine': ['Naezy', 'Seedhe Maut', 'KR$NA', 'Raftaar', 'EPR', 'MC Stan', 'Prabh Deep'],
+  'kr$na': ['Seedhe Maut', 'Divine', 'Raftaar', 'Karma', 'Brodha V', 'Bella', 'Talwiinder'],
+  'seedhe maut': ['KR$NA', 'Prabh Deep', 'Chaar Diwaari', 'Talwiinder', 'Frappe Ash', 'Rawal', 'Divine'],
+  'mc stan': ['Divine', 'Emiway Bantai', 'Munawar Faruqui', 'Paradox', 'King', 'Raftaar'],
+  'emiway bantai': ['MC Stan', 'Divine', 'Raftaar', 'Yo Yo Honey Singh', 'Bohemia', 'Munawar Faruqui'],
+  'talwiinder': ['Hasan Raheem', 'Shubh', 'AP Dhillon', 'Wazir Patar', 'NseeB', 'Seedhe Maut'],
 
   // Punjabi
-  'sidhu moose wala': ['Karan Aujla', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'Amrit Maan', 'Parmish Verma'],
-  'karan aujla': ['Sidhu Moose Wala', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'Jordan Sandhu'],
-  'ap dhillon': ['Gurinder Gill', 'Shubh', 'Diljit Dosanjh', 'Karan Aujla', 'Intense'],
-  'diljit dosanjh': ['Amrinder Gill', 'Gippy Grewal', 'Guru Randhawa', 'Garry Sandhu'],
+  'sidhu moose wala': ['Karan Aujla', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'Amrit Maan', 'Parmish Verma', 'Prem Dhillon'],
+  'karan aujla': ['Sidhu Moose Wala', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'Jordan Sandhu', 'Jerry'],
+  'ap dhillon': ['Gurinder Gill', 'Shubh', 'Diljit Dosanjh', 'Karan Aujla', 'Intense', 'Shinda Kahlon'],
+  'diljit dosanjh': ['Amrinder Gill', 'Gippy Grewal', 'Guru Randhawa', 'Garry Sandhu', 'Karan Aujla', 'AP Dhillon'],
+  'shubh': ['AP Dhillon', 'Karan Aujla', 'Sidhu Moose Wala', 'Jerry', 'Jordan Sandhu', 'Talwiinder'],
+  'guru randhawa': ['Harrdy Sandhu', 'Badshah', 'Jassie Gill', 'Millind Gaba', 'Akhil', 'B Praak'],
+  'harrdy sandhu': ['B Praak', 'Jaani', 'Guru Randhawa', 'Jassie Gill', 'Parmish Verma', 'Ammy Virk'],
 
-  // South Indian (Telugu / Tamil / Kannada / Malayalam)
-  'sid sriram': ['Armaan Malik', 'Anurag Kulkarni', 'Ram Miriyala', 'Hesham Abdul Wahab', 'Anirudh Ravichander'],
+  // Telugu
+  'sid sriram': ['Anurag Kulkarni', 'Ram Miriyala', 'Armaan Malik', 'Hesham Abdul Wahab', 'Anirudh Ravichander', 'Devi Sri Prasad'],
   'anirudh ravichander': ['Devi Sri Prasad', 'Thaman S', 'G.V. Prakash Kumar', 'Harris Jayaraj', 'Santhosh Narayanan'],
-  'devi sri prasad': ['Thaman S', 'Anirudh Ravichander', 'Mani Sharma', 'M.M. Keeravaani'],
-  'thaman s': ['Devi Sri Prasad', 'Anirudh Ravichander', 'Mani Sharma', 'M.M. Keeravaani'],
+  'devi sri prasad': ['Thaman S', 'Anirudh Ravichander', 'Mani Sharma', 'M.M. Keeravaani', 'Mickey J Meyer'],
+  'thaman s': ['Devi Sri Prasad', 'Anirudh Ravichander', 'Mani Sharma', 'M.M. Keeravaani', 'G.V. Prakash Kumar'],
+  'ram miriyala': ['Mangli', 'Anurag Kulkarni', 'Sid Sriram', 'Rahul Sipligunj', 'Anthony Daasan', 'Devi Sri Prasad'],
+  'anurag kulkarni': ['Sid Sriram', 'Ram Miriyala', 'Armaan Malik', 'Haricharan', 'Karthik', 'Thaman S'],
+  'm.m. keeravaani': ['Devi Sri Prasad', 'Mani Sharma', 'Ilaiyaraaja', 'A.R. Rahman', 'Thaman S'],
+
+  // Tamil
+  'yuvan shankar raja': ['Harris Jayaraj', 'Anirudh Ravichander', 'Santhosh Narayanan', 'Ilaiyaraaja', 'Vidyasagar', 'G.V. Prakash Kumar'],
+  'harris jayaraj': ['Yuvan Shankar Raja', 'Anirudh Ravichander', 'A.R. Rahman', 'D. Imman', 'G.V. Prakash Kumar'],
+  'santhosh narayanan': ['Anirudh Ravichander', 'Sean Roldan', 'Yuvan Shankar Raja', 'Pradeep Kumar', 'Dhibu Ninan Thomas'],
+  'pradeep kumar': ['Sean Roldan', 'Santhosh Narayanan', 'Sid Sriram', 'Dhibu Ninan Thomas', 'Haricharan'],
+  'hiphop tamizha': ['Anirudh Ravichander', 'Yuvan Shankar Raja', 'G.V. Prakash Kumar', 'D. Imman'],
+
+  // Malayalam
+  'sushin shyam': ['Hesham Abdul Wahab', 'Vishnu Vijay', 'Shaan Rahman', 'Jakes Bejoy', 'Gopi Sundar', 'Rex Vijayan'],
+  'hesham abdul wahab': ['Sushin Shyam', 'Sid Sriram', 'Shaan Rahman', 'Gopi Sundar', 'Sachin Warrier'],
+  'shaan rahman': ['Sushin Shyam', 'Gopi Sundar', 'Vineeth Sreenivasan', 'Sachin Warrier'],
+  'gopi sundar': ['Shaan Rahman', 'Sushin Shyam', 'Jakes Bejoy', 'Deepak Dev'],
+
+  // Kannada
+  'ravi basrur': ['B. Ajaneesh Loknath', 'Arjun Janya', 'Charan Raj', 'Sanjith Hegde', 'Vasuki Vaibhav'],
+  'b. ajaneesh loknath': ['Ravi Basrur', 'Charan Raj', 'Arjun Janya', 'Midhun Mukundan'],
+  'arjun janya': ['Ravi Basrur', 'B. Ajaneesh Loknath', 'Sanjith Hegde', 'V. Harikrishna'],
+  'sanjith hegde': ['Charan Raj', 'Vasuki Vaibhav', 'Sid Sriram', 'Raghu Dixit'],
+
+  // Western / Global Pop / Hip-Hop / EDM
+  'the weeknd': ['Drake', 'Post Malone', 'Travis Scott', 'Frank Ocean', 'Lana Del Rey', 'Kendrick Lamar', 'Dua Lipa', 'SZA'],
+  'taylor swift': ['Olivia Rodrigo', 'Gracie Abrams', 'Sabrina Carpenter', 'Billie Eilish', 'Ed Sheeran', 'Lorde', 'Phoebe Bridgers'],
+  'drake': ['Travis Scott', '21 Savage', 'Future', 'The Weeknd', 'J. Cole', 'Kendrick Lamar', 'Kanye West', 'Metro Boomin'],
+  'travis scott': ['Drake', 'Don Toliver', 'Playboi Carti', 'Metro Boomin', 'Future', '21 Savage', 'Kendrick Lamar'],
+  'post malone': ['The Weeknd', 'Juice WRLD', 'Swae Lee', 'Drake', 'Twenty One Pilots', 'Khalid', 'Kid LAROI'],
+  'dua lipa': ['Ariana Grande', 'Katy Perry', 'Ava Max', 'Billie Eilish', 'Bebe Rexha', 'Doja Cat', 'Miley Cyrus'],
+  'billie eilish': ['Olivia Rodrigo', 'Finneas', 'Lana Del Rey', 'Girl in Red', 'Lorde', 'Phoebe Bridgers', 'Conan Gray'],
+  'olivia rodrigo': ['Billie Eilish', 'Sabrina Carpenter', 'Conan Gray', 'Gracie Abrams', 'Tate McRae', 'Taylor Swift'],
+  'sabrina carpenter': ['Olivia Rodrigo', 'Dua Lipa', 'Ariana Grande', 'Tate McRae', 'Madison Beer', 'Camila Cabello'],
+  'ed sheeran': ['Shawn Mendes', 'Charlie Puth', 'Justin Bieber', 'James Arthur', 'Lewis Capaldi', 'OneRepublic'],
+  'justin bieber': ['Shawn Mendes', 'Charlie Puth', 'Zayn', 'The Weeknd', 'Khalid', 'DJ Snake'],
+  'coldplay': ['Imagine Dragons', 'OneRepublic', 'Maroon 5', 'The Chainsmokers', 'Bastille', 'Snow Patrol'],
+  'imagine dragons': ['Coldplay', 'OneRepublic', 'Fall Out Boy', 'Panic! At The Disco', 'Twenty One Pilots'],
+  'bruno mars': ['Anderson .Paak', 'The Weeknd', 'Justin Timberlake', 'Michael Jackson', 'Mark Ronson'],
+  'eminem': ['50 Cent', 'Dr. Dre', 'Snoop Dogg', 'Kendrick Lamar', '2Pac', 'Jay-Z', 'NF'],
+  'kendrick lamar': ['J. Cole', 'Kanye West', 'Drake', 'Travis Scott', 'Baby Keem', 'A$AP Rocky'],
 };
 
 // ── SONG FINGERPRINTING & DEDUPLICATION ─────────────────
@@ -504,7 +578,10 @@ export function getSongFingerprint(song) {
 export async function getSongSuggestions(songId) {
     if (!songId) return [];
     try {
-        const data = await searchFetch(`/songs/${songId}/suggestions`);
+        let data = await apiFetch(`/songs/${encodeURIComponent(songId)}/suggestions`, { timeoutPrimary: 2200, timeoutFallback: 2500 });
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+            data = await apiFetch(`/songs?id=${encodeURIComponent(songId)}&suggestions=true`, { timeoutPrimary: 2200, timeoutFallback: 2500 });
+        }
         if (data) {
             const rawList = Array.isArray(data) ? data : (data.results || data.songs || data.data || []);
             return rawList.map(normalizeSong).filter(Boolean);
@@ -515,8 +592,8 @@ export async function getSongSuggestions(songId) {
     return [];
 }
 
-// ── SPOTIFY-GRADE AUTOPLAY RECOMMENDATIONS ENGINE ───────
-export async function getAutoplayRecommendations(currentSong, excludedIds = [], limit = 15) {
+// ── SPOTIFY-GRADE CONTINUOUS AUTOPLAY RECOMMENDATIONS ENGINE ───────
+export async function getAutoplayRecommendations(currentSong, excludedIds = [], limit = 20) {
     if (!currentSong) return [];
 
     const excludedSet = new Set((excludedIds || []).map(id => String(id)));
@@ -550,51 +627,79 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
         return true;
     };
 
-    // 1. First priority: Direct Song Suggestions / Recommendations API (AI-matched by JioSaavn)
+    // 1. Direct Song Suggestions (AI-matched by JioSaavn)
     if (currentSong.id) {
         try {
             const suggestions = await getSongSuggestions(currentSong.id);
             if (suggestions && suggestions.length > 0) {
-                suggestions.forEach(addSong);
+                suggestions.slice(0, 6).forEach(addSong);
             }
         } catch (err) {
             console.warn('[Autoplay] suggestions error:', err.message);
         }
     }
 
-    // 2. Second priority: Artist Top Songs if artistId exists
+    // 2. Album / Soundtrack Companion Tracks (Same film/album atmosphere)
+    if (recommendedSongs.length < limit && (currentSong.albumId || currentSong.album)) {
+        try {
+            if (currentSong.albumId) {
+                const album = await getAlbumById(currentSong.albumId);
+                if (album?.songs && album.songs.length > 0) {
+                    album.songs.slice(0, 5).forEach(addSong);
+                }
+            } else if (currentSong.album && currentSong.album !== 'Unknown Album') {
+                const albumResult = await searchSongs(currentSong.album, 0, 8);
+                if (albumResult?.results && albumResult.results.length > 0) {
+                    albumResult.results.slice(0, 4).forEach(addSong);
+                }
+            }
+        } catch (err) {
+            console.warn('[Autoplay] Album companions error:', err.message);
+        }
+    }
+
+    // 3. Primary Artist Top Songs
     if (recommendedSongs.length < limit && currentSong.artistId) {
         try {
             const artistSongs = await getArtistSongs(currentSong.artistId, 1);
             if (artistSongs && artistSongs.length > 0) {
-                artistSongs.slice(0, 8).forEach(addSong);
+                artistSongs.slice(0, 6).forEach(addSong);
             }
         } catch (err) {
             console.warn('[Autoplay] artist top tracks error:', err.message);
         }
     }
 
-    // 3. Primary Artist & Related Artists matrix pool
+    // 4. Peer Artists & Genre Affinity Matrix (Interleaved Round-Robin)
     const rawArtist = currentSong.artistName || currentSong.artist || '';
     const artistList = rawArtist.split(',').map(a => a.trim()).filter(Boolean);
     const mainArtist = artistList[0] || 'Unknown Artist';
     const mainArtistLower = mainArtist.toLowerCase();
 
-    // 2. Look up related artists from matrix or fallback
     let relatedArtists = RELATED_ARTISTS_MAP[mainArtistLower];
+    if (!relatedArtists || relatedArtists.length === 0) {
+        const matchKey = Object.keys(RELATED_ARTISTS_MAP).find(k => mainArtistLower.includes(k) || k.includes(mainArtistLower));
+        if (matchKey) {
+            relatedArtists = RELATED_ARTISTS_MAP[matchKey];
+        }
+    }
+
     if (!relatedArtists || relatedArtists.length === 0) {
         relatedArtists = artistList.slice(1);
     }
 
-    // Always include main artist for seed pool
+    const songLang = (currentSong.language || 'hindi').toLowerCase();
+    if ((!relatedArtists || relatedArtists.length === 0) && LANGUAGE_AFFINITY_MAP[songLang]) {
+        relatedArtists = LANGUAGE_AFFINITY_MAP[songLang];
+    }
+
     const artistQueryPool = [mainArtist, ...(relatedArtists || [])].slice(0, 6);
 
-    // 3. Parallel fetch of songs across related artists
     try {
         const fetchResults = await Promise.all(
             artistQueryPool.map(async (art) => {
                 try {
-                    const res = await searchSongs(art, 0, 10);
+                    const res = await searchSongs(art, 0, 8);
                     return res?.results || [];
                 } catch {
                     return [];
@@ -602,7 +707,6 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
             })
         );
 
-        // Interleave songs for balanced Spotify Radio sequence (1 from each artist per round)
         let maxSongsPerArtist = Math.max(0, ...fetchResults.map(r => r.length));
         for (let round = 0; round < maxSongsPerArtist; round++) {
             for (let i = 0; i < fetchResults.length; i++) {
@@ -613,40 +717,19 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
             if (recommendedSongs.length >= limit) break;
         }
     } catch (err) {
-        console.warn('[SpotifyRadio Engine] parallel fetch error:', err.message);
+        console.warn('[Autoplay] parallel fetch error:', err.message);
     }
 
-    // 4. Album matching fallback if pool is still small
-    if (recommendedSongs.length < limit && (currentSong.albumId || currentSong.album)) {
-        try {
-            if (currentSong.albumId) {
-                const album = await getAlbumById(currentSong.albumId);
-                if (album?.songs) {
-                    album.songs.forEach(addSong);
-                }
-            }
-            if (recommendedSongs.length < limit && currentSong.album) {
-                const albumResult = await searchSongs(currentSong.album, 0, 10);
-                if (albumResult?.results) {
-                    albumResult.results.forEach(addSong);
-                }
-            }
-        } catch (err) {
-            console.warn('[SpotifyRadio Engine] Album fallback error:', err.message);
-        }
-    }
-
-    // 5. Language discovery fallback if pool is under limit
+    // 5. Language-Locked Discovery Fallback (Prevents genre/language clash)
     if (recommendedSongs.length < limit) {
         try {
-            const lang = (currentSong.language || 'hindi').toLowerCase();
-            const mappedLang = LANGUAGE_MAP[lang] || lang || 'hindi';
-            const langResult = await searchSongs(mappedLang, 0, 15);
+            const mappedLang = LANGUAGE_MAP[songLang] || songLang || 'hindi';
+            const langResult = await searchSongs(`top ${mappedLang} songs`, 0, 15);
             if (langResult?.results) {
                 langResult.results.forEach(addSong);
             }
         } catch (err) {
-            console.warn('[SpotifyRadio Engine] Language fallback error:', err.message);
+            console.warn('[Autoplay] Language fallback error:', err.message);
         }
     }
 

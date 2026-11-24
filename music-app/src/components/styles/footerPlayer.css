@@ -644,6 +644,10 @@
   color: rgba(255, 255, 255, 0.68);
   cursor: pointer;
   display: inline;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  padding: 2px 0;
   transition: color 0.15s ease, text-decoration 0.15s ease, opacity 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
@@ -663,6 +667,10 @@
 .fs-clickable-album {
   cursor: pointer;
   display: inline-block;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+  padding: 2px 0;
   color: rgba(255, 255, 255, 0.42);
   transition: color 0.15s ease, text-decoration 0.15s ease, opacity 0.15s ease;
   user-select: none;

@@ -40,7 +40,7 @@ export const QueueProvider = ({ children }) => {
 
   const addPlayedId = useCallback((id) => {
     if (!id) return
-    setPlayedHistory(prev => [String(id), ...prev.filter(item => item !== String(id))].slice(0, 50))
+    setPlayedHistory(prev => [String(id), ...prev.filter(item => item !== String(id))].slice(0, 200))
   }, [])
 
   const toggleShuffle = useCallback(() => {
