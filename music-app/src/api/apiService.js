@@ -118,8 +118,8 @@ const searchFetch = (path) => apiFetch(path);
 
 export function normalizeSong(s) {
     if (!s) return null;
-    const cover = getBestImage(s.image);
-    const src = getBestAudio(s.downloadUrl);
+    const cover = getBestImage(s.image || s.images) || s.albumCover || s.cover || '';
+    const src = getBestAudio(s.downloadUrl || s.download_url) || s.media_url || s.audioUrl || s.src || '';
 
     // Build artist list: supports {primary:[]}, comma string, or plain array
     let artistArr = [];
@@ -578,13 +578,13 @@ export function getSongFingerprint(song) {
 export async function getSongSuggestions(songId) {
     if (!songId) return [];
     try {
-        let data = await apiFetch(`/songs/${encodeURIComponent(songId)}/suggestions`, { timeoutPrimary: 2200, timeoutFallback: 2500 });
+        let data = await apiFetch(`/songs/${encodeURIComponent(songId)}/suggestions`);
         if (!data || (Array.isArray(data) && data.length === 0)) {
-            data = await apiFetch(`/songs?id=${encodeURIComponent(songId)}&suggestions=true`, { timeoutPrimary: 2200, timeoutFallback: 2500 });
+            data = await apiFetch(`/songs?id=${encodeURIComponent(songId)}&suggestions=true`);
         }
         if (data) {
             const rawList = Array.isArray(data) ? data : (data.results || data.songs || data.data || []);
-            return rawList.map(normalizeSong).filter(Boolean);
+            return rawList.map(normalizeSong).filter(s => s && s.src);
         }
     } catch (e) {
         console.warn('[getSongSuggestions error]', e.message);
@@ -607,7 +607,8 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
     const recommendedSongs = [];
 
     const addSong = (song) => {
-        if (!song || !song.id || !song.title) return false;
+        // Enforce playable audio URL — NEVER queue a song without src!
+        if (!song || !song.id || !song.title || !song.src) return false;
         const sId = String(song.id);
         const fp = getSongFingerprint(song);
 
@@ -627,7 +628,7 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
         return true;
     };
 
-    // 1. Direct Song Suggestions (AI-matched by JioSaavn) - FASTEST & MOST RELEVANT
+    // 1. Direct AI Suggestions (Matched by JioSaavn)
     if (currentSong.id) {
         try {
             const suggestions = await getSongSuggestions(currentSong.id);
@@ -639,19 +640,13 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
         }
     }
 
-    // If suggestions already provided 8+ high quality matching tracks, return immediately!
-    // This avoids making 5-6 slow parallel search calls that cause network stalls and delays!
-    if (recommendedSongs.length >= 8) {
-        return recommendedSongs.slice(0, limit);
-    }
-
-    // 2. Album / Soundtrack Companion Tracks (Same film/album atmosphere)
+    // 2. Sibling Album / OST Companion Tracks (Atmospheric match)
     if (recommendedSongs.length < limit && (currentSong.albumId || currentSong.album)) {
         try {
             if (currentSong.albumId) {
                 const album = await getAlbumById(currentSong.albumId);
                 if (album?.songs && album.songs.length > 0) {
-                    album.songs.slice(0, 5).forEach(addSong);
+                    album.songs.slice(0, 4).forEach(addSong);
                 }
             } else if (currentSong.album && currentSong.album !== 'Unknown Album') {
                 const albumResult = await searchSongs(currentSong.album, 0, 5);
@@ -669,25 +664,18 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
     const artistList = rawArtist.split(',').map(a => a.trim()).filter(Boolean);
     const mainArtist = artistList[0] || '';
 
-    if (recommendedSongs.length < limit && (currentSong.artistId || mainArtist)) {
+    if (recommendedSongs.length < limit && mainArtist) {
         try {
-            if (currentSong.artistId) {
-                const artistSongs = await getArtistSongs(currentSong.artistId, 1);
-                if (artistSongs && artistSongs.length > 0) {
-                    artistSongs.slice(0, 5).forEach(addSong);
-                }
-            } else if (mainArtist) {
-                const artistRes = await searchSongs(mainArtist, 0, 6);
-                if (artistRes?.results && artistRes.results.length > 0) {
-                    artistRes.results.slice(0, 4).forEach(addSong);
-                }
+            const artistRes = await searchSongs(mainArtist, 0, 6);
+            if (artistRes?.results && artistRes.results.length > 0) {
+                artistRes.results.slice(0, 4).forEach(addSong);
             }
         } catch (err) {
             console.warn('[Autoplay] artist top tracks error:', err.message);
         }
     }
 
-    // 4. One Closely Related Peer Artist (targeted query, NOT 6 heavy parallel searches)
+    // 4. Closely Related Peer Artists (Spotify Affinity Network)
     if (recommendedSongs.length < limit && mainArtist) {
         const mainArtistLower = mainArtist.toLowerCase();
         let relatedArtists = RELATED_ARTISTS_MAP[mainArtistLower];
@@ -698,10 +686,20 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
             }
         }
 
-        const peerArtist = relatedArtists?.[0] || artistList[1];
-        if (peerArtist) {
+        if (!relatedArtists || relatedArtists.length === 0) {
+            relatedArtists = artistList.slice(1);
+        }
+
+        const songLang = (currentSong.language || 'hindi').toLowerCase();
+        if ((!relatedArtists || relatedArtists.length === 0) && LANGUAGE_AFFINITY_MAP[songLang]) {
+            relatedArtists = LANGUAGE_AFFINITY_MAP[songLang];
+        }
+
+        const topPeers = (relatedArtists || []).slice(0, 3);
+        for (const peer of topPeers) {
+            if (recommendedSongs.length >= limit) break;
             try {
-                const peerRes = await searchSongs(peerArtist, 0, 5);
+                const peerRes = await searchSongs(peer, 0, 5);
                 if (peerRes?.results && peerRes.results.length > 0) {
                     peerRes.results.slice(0, 3).forEach(addSong);
                 }
@@ -711,14 +709,14 @@ export async function getAutoplayRecommendations(currentSong, excludedIds = [], 
         }
     }
 
-    // 5. Language Discovery Fallback (if still below 4 songs)
-    const songLang = (currentSong.language || 'hindi').toLowerCase();
-    if (recommendedSongs.length < 4) {
+    // 5. Language Top Hits Discovery Fallback (ensures a rich, full queue every time)
+    if (recommendedSongs.length < limit) {
+        const songLang = (currentSong.language || 'hindi').toLowerCase();
         try {
             const mappedLang = LANGUAGE_MAP[songLang] || songLang || 'hindi';
-            const langResult = await searchSongs(`top ${mappedLang} songs`, 0, 8);
+            const langResult = await searchSongs(`top ${mappedLang} songs`, 0, 10);
             if (langResult?.results) {
-                langResult.results.slice(0, 5).forEach(addSong);
+                langResult.results.forEach(addSong);
             }
         } catch (err) {
             console.warn('[Autoplay] Language fallback error:', err.message);
