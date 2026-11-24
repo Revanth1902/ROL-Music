@@ -445,7 +445,7 @@ export const LANGUAGES = [
 // ── LANGUAGE AFFINITY DEFAULTS ────────────────────────
 const LANGUAGE_AFFINITY_MAP = {
   hindi: ['Arijit Singh', 'Pritam', 'Atif Aslam', 'Shreya Ghoshal', 'KK', 'Mohit Chauhan', 'Jubin Nautiyal', 'Vishal Mishra'],
-  telugu: ['Sid Sriram', 'Anurag Kulkarni', 'Ram Miriyala', 'Hesham Abdul Wahab', 'Devi Sri Prasad', 'Thaman S', 'Armaan Malik'],
+  telugu: ['Sid Sriram', 'Anurag Kulkarni', 'Ram Miriyala', 'Devi Sri Prasad', 'Thaman S', 'Armaan Malik', 'Anirudh Ravichander'],
   tamil: ['Anirudh Ravichander', 'Yuvan Shankar Raja', 'Harris Jayaraj', 'Sid Sriram', 'Santhosh Narayanan', 'Pradeep Kumar'],
   punjabi: ['Sidhu Moose Wala', 'Karan Aujla', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'B Praak', 'Guru Randhawa'],
   english: ['The Weeknd', 'Taylor Swift', 'Post Malone', 'Drake', 'Billie Eilish', 'Dua Lipa', 'Ed Sheeran', 'Coldplay'],
@@ -456,145 +456,9 @@ const LANGUAGE_AFFINITY_MAP = {
   bhojpuri: ['Pawan Singh', 'Khesari Lal Yadav', 'Shilpi Raj', 'Manoj Tiwari'],
 };
 
-// ── SPOTIFY-GRADE TASTE CLUSTERS MATRIX ─────────────────
-// Curated audience affinity cohorts representing true musical styles and listener transitions
-export const TASTE_CLUSTERS = [
-  {
-    id: 'hindi_romantic',
-    lang: 'hindi',
-    artists: [
-      'arijit singh', 'atif aslam', 'mohit chauhan', 'kk', 'shreya ghoshal', 'jubin nautiyal',
-      'vishal mishra', 'mithoon', 'pritam', 'sachin-jigar', 'javed ali', 'papon', 'mustafa zahid',
-      'ankit tiwari', 'sachet tandon', 'sachet-parampara', 'stebin ben', 'akhil sachdeva',
-      'shilpa rao', 'armaan malik', 'darshan raval', 'amaal mallik', 'asim azhar'
-    ],
-    peerArtists: ['Arijit Singh', 'Atif Aslam', 'Mohit Chauhan', 'KK', 'Shreya Ghoshal', 'Jubin Nautiyal', 'Vishal Mishra', 'Pritam'],
-    targetQueries: ['Arijit Singh romantic hits', 'Atif Aslam love songs', 'Mohit Chauhan romantic hits', 'KK evergreen songs', 'Shreya Ghoshal melodies', 'Vishal Mishra soulful'],
-  },
-  {
-    id: 'hindi_indie',
-    lang: 'hindi',
-    artists: [
-      'anuv jain', 'prateek kuhad', 'zaeden', 'mitraz', 'aditya rikhari', 'the local train',
-      'twin strings', 'when chai met toast', 'osho jain', 'piyush bhisekar', 'jasleen royal',
-      'bharat chauhan', 'lifafa', 'oaff', 'savera', 'kanishk seth', 'raghav chaitanya',
-      'bawari basanti', 'king', 'ritviz'
-    ],
-    peerArtists: ['Anuv Jain', 'Prateek Kuhad', 'Zaeden', 'Mitraz', 'Aditya Rikhari', 'The Local Train', 'Twin Strings', 'When Chai Met Toast'],
-    targetQueries: ['Anuv Jain indie hits', 'Prateek Kuhad acoustic', 'Mitraz chill songs', 'The Local Train top songs', 'Zaeden acoustic songs', 'Hindi indie acoustic hits'],
-  },
-  {
-    id: 'desi_hiphop',
-    lang: 'hindi',
-    artists: [
-      'divine', 'kr$na', 'seedhe maut', 'raftaar', 'badshah', 'yo yo honey singh', 'mc stan',
-      'emiway bantai', 'talwiinder', 'paradox', 'chaar diwaari', 'prabh deep', 'karma',
-      'bella', 'brodha v', 'naezy', 'epr', 'frappe ash', 'rawal', 'ikka', 'dino james'
-    ],
-    peerArtists: ['Seedhe Maut', 'KR$NA', 'Divine', 'Raftaar', 'Talwiinder', 'MC Stan', 'Badshah', 'Emiway Bantai'],
-    targetQueries: ['Seedhe Maut hits', 'KR$NA rap songs', 'Divine best rap', 'Raftaar hip hop', 'Talwiinder songs', 'Desi hip hop top tracks'],
-  },
-  {
-    id: 'punjabi_urban',
-    lang: 'punjabi',
-    artists: [
-      'sidhu moose wala', 'karan aujla', 'ap dhillon', 'diljit dosanjh', 'shubh', 'wazir patar',
-      'prem dhillon', 'jordan sandhu', 'jerry', 'amrit maan', 'b praak', 'jaani', 'harrdy sandhu',
-      'guru randhawa', 'parmish verma', 'jassie gill', 'garry sandhu', 'gippy grewal', 'amrinder gill',
-      'shinda kahlon', 'gurinder gill', 'intense'
-    ],
-    peerArtists: ['Sidhu Moose Wala', 'Karan Aujla', 'AP Dhillon', 'Diljit Dosanjh', 'Shubh', 'B Praak', 'Guru Randhawa'],
-    targetQueries: ['Karan Aujla hits', 'Sidhu Moose Wala top songs', 'AP Dhillon Punjabi hits', 'Diljit Dosanjh best songs', 'Shubh punjabi songs', 'Punjabi top drill and pop'],
-  },
-  {
-    id: 'bollywood_90s_00s',
-    lang: 'hindi',
-    artists: [
-      'kumar sanu', 'udit narayan', 'alka yagnik', 'sonu nigam', 'sadhana sargam', 'anuradha paudwal',
-      'kavita krishnamurthy', 'nadeem-shravan', 'jatin-lalit', 'abhijeet bhattacharya', 'lucky ali',
-      'shaan', 'babul supriyo', 'hariharan', 'alisha chinai', 'altaf raja'
-    ],
-    peerArtists: ['Kumar Sanu', 'Udit Narayan', 'Alka Yagnik', 'Sonu Nigam', 'Sadhana Sargam', 'Lucky Ali', 'Shaan'],
-    targetQueries: ['Kumar Sanu romantic 90s', 'Udit Narayan evergreen hits', 'Alka Yagnik 90s melodies', 'Sonu Nigam best romantic songs', '90s Bollywood evergreen romantic songs'],
-  },
-  {
-    id: 'telugu_melodic',
-    lang: 'telugu',
-    artists: [
-      'sid sriram', 'anurag kulkarni', 'ram miriyala', 'hesham abdul wahab', 'haricharan', 'karthik',
-      'mickey j meyer', 'm.m. keeravaani', 'armaan malik', 'sanjith hegde', 'chinmayi',
-      'chitra', 's.p. balasubrahmanyam'
-    ],
-    peerArtists: ['Sid Sriram', 'Anurag Kulkarni', 'Hesham Abdul Wahab', 'Ram Miriyala', 'Haricharan', 'Karthik', 'Mickey J Meyer'],
-    targetQueries: ['Sid Sriram Telugu melodies', 'Anurag Kulkarni love songs', 'Hesham Abdul Wahab Telugu hits', 'Ram Miriyala melodies', 'Telugu soulful melodies'],
-  },
-  {
-    id: 'telugu_mass',
-    lang: 'telugu',
-    artists: [
-      'devi sri prasad', 'thaman s', 'anirudh ravichander', 'rahul sipligunj', 'mangli',
-      'anthony daasan', 'nakash aziz', 'daler mehndi'
-    ],
-    peerArtists: ['Devi Sri Prasad', 'Thaman S', 'Anirudh Ravichander', 'Rahul Sipligunj', 'Mangli'],
-    targetQueries: ['Devi Sri Prasad mass hits', 'Thaman S beat songs', 'Telugu party mass songs', 'Anirudh Telugu songs'],
-  },
-  {
-    id: 'tamil_modern',
-    lang: 'tamil',
-    artists: [
-      'anirudh ravichander', 'yuvan shankar raja', 'harris jayaraj', 'santhosh narayanan',
-      'pradeep kumar', 'sean roldan', 'd. imman', 'g.v. prakash kumar', 'hiphop tamizha',
-      'dhibu ninan thomas', 'vijay antony', 'a.r. rahman'
-    ],
-    peerArtists: ['Anirudh Ravichander', 'Yuvan Shankar Raja', 'Harris Jayaraj', 'Santhosh Narayanan', 'Pradeep Kumar', 'Sean Roldan'],
-    targetQueries: ['Anirudh Ravichander Tamil hits', 'Yuvan Shankar Raja melodies', 'Harris Jayaraj classic hits', 'Pradeep Kumar soulful Tamil', 'Santhosh Narayanan top songs'],
-  },
-  {
-    id: 'malayalam_melodic',
-    lang: 'malayalam',
-    artists: [
-      'sushin shyam', 'hesham abdul wahab', 'shaan rahman', 'gopi sundar', 'vineeth sreenivasan',
-      'jakes bejoy', 'rex vijayan', 'vishnu vijay', 'deepak dev', 'job kurian'
-    ],
-    peerArtists: ['Sushin Shyam', 'Hesham Abdul Wahab', 'Shaan Rahman', 'Gopi Sundar', 'Vineeth Sreenivasan'],
-    targetQueries: ['Sushin Shyam hits', 'Hesham Abdul Wahab Malayalam songs', 'Shaan Rahman melodious songs', 'Malayalam acoustic melodies'],
-  },
-  {
-    id: 'kannada_hits',
-    lang: 'kannada',
-    artists: [
-      'ravi basrur', 'b. ajaneesh loknath', 'arjun janya', 'charan raj', 'sanjith hegde',
-      'vasuki vaibhav', 'raghu dixit', 'midhun mukundan', 'v. harikrishna'
-    ],
-    peerArtists: ['Ravi Basrur', 'B. Ajaneesh Loknath', 'Arjun Janya', 'Charan Raj', 'Sanjith Hegde'],
-    targetQueries: ['Ravi Basrur hits', 'Ajaneesh Loknath songs', 'Charan Raj Kannada melodies', 'Sanjith Hegde Kannada songs'],
-  },
-  {
-    id: 'western_pop',
-    lang: 'english',
-    artists: [
-      'the weeknd', 'drake', 'post malone', 'travis scott', 'sza', 'billie eilish',
-      'olivia rodrigo', 'taylor swift', 'sabrina carpenter', 'dua lipa', 'frank ocean',
-      'justin bieber', 'ariana grande', 'bruno mars', 'khalid', 'ed sheeran', 'charlie puth'
-    ],
-    peerArtists: ['The Weeknd', 'Post Malone', 'Drake', 'SZA', 'Billie Eilish', 'Olivia Rodrigo', 'Dua Lipa', 'Taylor Swift'],
-    targetQueries: ['The Weeknd top hits', 'Post Malone popular songs', 'SZA best tracks', 'Billie Eilish popular', 'Modern Pop hits'],
-  },
-  {
-    id: 'western_rock',
-    lang: 'english',
-    artists: [
-      'coldplay', 'imagine dragons', 'onerepublic', 'maroon 5', 'the chainsmokers',
-      'bastille', 'arctic monkeys', 'the neighbourhood', 'twenty one pilots', 'fall out boy'
-    ],
-    peerArtists: ['Coldplay', 'Imagine Dragons', 'OneRepublic', 'Maroon 5', 'The Chainsmokers'],
-    targetQueries: ['Coldplay best songs', 'Imagine Dragons top hits', 'OneRepublic popular songs', 'Modern alternative rock hits'],
-  }
-];
-
-// Flat fallback related artist map for fast O(1) lookups
+// ── SPOTIFY-GRADE RELATED ARTISTS MATRIX ────────────────
 const RELATED_ARTISTS_MAP = {
-  // Hindi / Bollywood
+  // Hindi / Bollywood Modern & Romantic
   'arijit singh': ['Pritam', 'Atif Aslam', 'Mohit Chauhan', 'Jubin Nautiyal', 'B Praak', 'Armaan Malik', 'Shreya Ghoshal', 'Sachin-Jigar', 'Vishal Mishra', 'KK'],
   'pritam': ['Arijit Singh', 'Vishal-Shekhar', 'Amit Trivedi', 'Sachin-Jigar', 'Shankar-Ehsaan-Loy', 'Mithoon', 'KK', 'Atif Aslam'],
   'atif aslam': ['Arijit Singh', 'Rahat Fateh Ali Khan', 'Mustafa Zahid', 'Ankit Tiwari', 'KK', 'Mohit Chauhan', 'Jal The Band', 'Pritam'],
@@ -616,7 +480,7 @@ const RELATED_ARTISTS_MAP = {
   'armaan malik': ['Amaal Mallik', 'Arijit Singh', 'Darshan Raval', 'Jubin Nautiyal', 'Sanam', 'Sid Sriram'],
   'darshan raval': ['Armaan Malik', 'Asim Azhar', 'Stebin Ben', 'Arijit Singh', 'Jubin Nautiyal'],
 
-  // Hindi Indie
+  // Hindi Indie / Lo-Fi / Acoustic
   'anuv jain': ['Zaeden', 'King', 'Prateek Kuhad', 'When Chai Met Toast', 'Mitraz', 'The Local Train', 'Twin Strings'],
   'prateek kuhad': ['Anuv Jain', 'When Chai Met Toast', 'The Local Train', 'Lifafa', 'Bharat Chauhan', 'Jasleen Royal'],
   'the local train': ['Parvaaz', 'Lifafa', 'When Chai Met Toast', 'Anuv Jain', 'Indian Ocean', 'Lucky Ali'],
@@ -627,7 +491,7 @@ const RELATED_ARTISTS_MAP = {
   'zaeden': ['King', 'Lost Stories', 'Anuv Jain', 'Ritviz', 'Mitraz', 'Twin Strings'],
   'when chai met toast': ['Prateek Kuhad', 'Anuv Jain', 'The Local Train', 'Sanah Moidutty'],
 
-  // Desi Hip-Hop
+  // Desi Hip-Hop / Rap
   'badshah': ['Yo Yo Honey Singh', 'Raftaar', 'Guru Randhawa', 'Divine', 'King', 'MC Stan', 'Ikka'],
   'yo yo honey singh': ['Badshah', 'Raftaar', 'Guru Randhawa', 'Imran Khan', 'Alfaaz', 'Mika Singh'],
   'divine': ['Naezy', 'Seedhe Maut', 'KR$NA', 'Raftaar', 'EPR', 'MC Stan', 'Prabh Deep'],
@@ -647,7 +511,7 @@ const RELATED_ARTISTS_MAP = {
   'harrdy sandhu': ['B Praak', 'Jaani', 'Guru Randhawa', 'Jassie Gill', 'Parmish Verma', 'Ammy Virk'],
 
   // Telugu
-  'sid sriram': ['Anurag Kulkarni', 'Ram Miriyala', 'Hesham Abdul Wahab', 'Armaan Malik', 'Haricharan', 'Devi Sri Prasad'],
+  'sid sriram': ['Anurag Kulkarni', 'Ram Miriyala', 'Armaan Malik', 'Hesham Abdul Wahab', 'Anirudh Ravichander', 'Devi Sri Prasad'],
   'anirudh ravichander': ['Devi Sri Prasad', 'Thaman S', 'G.V. Prakash Kumar', 'Harris Jayaraj', 'Santhosh Narayanan'],
   'devi sri prasad': ['Thaman S', 'Anirudh Ravichander', 'Mani Sharma', 'M.M. Keeravaani', 'Mickey J Meyer'],
   'thaman s': ['Devi Sri Prasad', 'Anirudh Ravichander', 'Mani Sharma', 'M.M. Keeravaani', 'G.V. Prakash Kumar'],
@@ -674,7 +538,7 @@ const RELATED_ARTISTS_MAP = {
   'arjun janya': ['Ravi Basrur', 'B. Ajaneesh Loknath', 'Sanjith Hegde', 'V. Harikrishna'],
   'sanjith hegde': ['Charan Raj', 'Vasuki Vaibhav', 'Sid Sriram', 'Raghu Dixit'],
 
-  // Western Pop / R&B / Rock
+  // Western / Global Pop / Hip-Hop / EDM
   'the weeknd': ['Drake', 'Post Malone', 'Travis Scott', 'Frank Ocean', 'Lana Del Rey', 'Kendrick Lamar', 'Dua Lipa', 'SZA'],
   'taylor swift': ['Olivia Rodrigo', 'Gracie Abrams', 'Sabrina Carpenter', 'Billie Eilish', 'Ed Sheeran', 'Lorde', 'Phoebe Bridgers'],
   'drake': ['Travis Scott', '21 Savage', 'Future', 'The Weeknd', 'J. Cole', 'Kendrick Lamar', 'Kanye West', 'Metro Boomin'],
@@ -693,398 +557,225 @@ const RELATED_ARTISTS_MAP = {
   'kendrick lamar': ['J. Cole', 'Kanye West', 'Drake', 'Travis Scott', 'Baby Keem', 'A$AP Rocky'],
 };
 
-// ── VIBE / TASTE CLUSTER DETECTOR ───────────────────────
-export function findTasteCluster(song) {
-  if (!song) return TASTE_CLUSTERS[0];
-  const songLang = (song.language || 'hindi').toLowerCase().trim();
-  const rawArtist = (song.artistName || song.artist || '').toLowerCase();
-  const allArtists = Array.isArray(song.artists) ? song.artists.map(a => (a.name || '').toLowerCase()) : [];
-  const searchString = `${rawArtist} ${allArtists.join(' ')}`;
-  const songYear = parseInt(song.year || 0, 10);
+// ── SONG FINGERPRINTING & DEDUPLICATION ─────────────────
+export function getSongFingerprint(song) {
+    if (!song) return '';
+    const cleanTitle = (song.title || song.name || '')
+        .toLowerCase()
+        .replace(/\(.*?\)|\[.*?\]|-.*$/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
 
-  // Evergreen 90s/2000s check: Hindi song pre-2008 with vintage singers
-  if (songLang === 'hindi' && songYear && songYear < 2008) {
-    const ninetiesCluster = TASTE_CLUSTERS.find(c => c.id === 'bollywood_90s_00s');
-    if (ninetiesCluster && ninetiesCluster.artists.some(a => searchString.includes(a))) {
-      return ninetiesCluster;
-    }
-  }
+    const primaryArtist = (song.artistName || song.artist || '')
+        .toLowerCase()
+        .split(',')[0]
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
 
-  // Exact artist match within language clusters first
-  for (const cluster of TASTE_CLUSTERS) {
-    const langMatch = !cluster.lang || cluster.lang === songLang || (songLang === 'urdu' && cluster.lang === 'hindi');
-    if (langMatch) {
-      for (const artist of cluster.artists) {
-        if (searchString.includes(artist)) {
-          return cluster;
-        }
-      }
-    }
-  }
-
-  // Cross-language artist match
-  for (const cluster of TASTE_CLUSTERS) {
-    for (const artist of cluster.artists) {
-      if (searchString.includes(artist)) {
-        return cluster;
-      }
-    }
-  }
-
-  // Fallback to primary language cluster
-  return TASTE_CLUSTERS.find(c => c.lang === songLang) || TASTE_CLUSTERS[0];
+    return cleanTitle ? `${cleanTitle}|${primaryArtist}` : '';
 }
 
-// ── SONG FINGERPRINTING & DEDUPLICATION ─────────────────
+export async function getSongSuggestions(songId) {
+    if (!songId) return [];
+    try {
+        let data = await apiFetch(`/songs/${encodeURIComponent(songId)}/suggestions`, { timeoutPrimary: 2200, timeoutFallback: 2500 });
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+            data = await apiFetch(`/songs?id=${encodeURIComponent(songId)}&suggestions=true`, { timeoutPrimary: 2200, timeoutFallback: 2500 });
+        }
+        if (data) {
+            const rawList = Array.isArray(data) ? data : (data.results || data.songs || data.data || []);
+            return rawList.map(normalizeSong).filter(Boolean);
+        }
+    } catch (e) {
+        console.warn('[getSongSuggestions error]', e.message);
+    }
+    return [];
+}
+
+// ── SPOTIFY-GRADE CONTINUOUS AUTOPLAY RECOMMENDATIONS ENGINE ───────
+export async function getAutoplayRecommendations(currentSong, excludedIds = [], limit = 20) {
+    if (!currentSong) return [];
+
+    const excludedSet = new Set((excludedIds || []).map(id => String(id)));
+    const addedIds = new Set();
+    const addedFingerprints = new Set();
+
+    if (currentSong.id) excludedSet.add(String(currentSong.id));
+    const currentFp = getSongFingerprint(currentSong);
+    if (currentFp) addedFingerprints.add(currentFp);
+
+    const recommendedSongs = [];
+
+    const addSong = (song) => {
+        if (!song || !song.id || !song.title) return false;
+        const sId = String(song.id);
+        const fp = getSongFingerprint(song);
+
+        // Strict Deduplication: ID AND Fingerprint (Title + Primary Artist)
+        if (excludedSet.has(sId) || addedIds.has(sId) || (fp && addedFingerprints.has(fp))) {
+            return false;
+        }
+
+        addedIds.add(sId);
+        if (fp) addedFingerprints.add(fp);
+
+        recommendedSongs.push({
+            ...song,
+            isAutoplayItem: true,
+            radioSeedSong: currentSong.title,
+        });
+        return true;
+    };
+
+    // 1. Direct Song Suggestions (AI-matched by JioSaavn)
+    if (currentSong.id) {
+        try {
+            const suggestions = await getSongSuggestions(currentSong.id);
+            if (suggestions && suggestions.length > 0) {
+                suggestions.slice(0, 6).forEach(addSong);
+            }
+        } catch (err) {
+            console.warn('[Autoplay] suggestions error:', err.message);
+        }
+    }
+
+    // 2. Album / Soundtrack Companion Tracks (Same film/album atmosphere)
+    if (recommendedSongs.length < limit && (currentSong.albumId || currentSong.album)) {
+        try {
+            if (currentSong.albumId) {
+                const album = await getAlbumById(currentSong.albumId);
+                if (album?.songs && album.songs.length > 0) {
+                    album.songs.slice(0, 5).forEach(addSong);
+                }
+            } else if (currentSong.album && currentSong.album !== 'Unknown Album') {
+                const albumResult = await searchSongs(currentSong.album, 0, 8);
+                if (albumResult?.results && albumResult.results.length > 0) {
+                    albumResult.results.slice(0, 4).forEach(addSong);
+                }
+            }
+        } catch (err) {
+            console.warn('[Autoplay] Album companions error:', err.message);
+        }
+    }
+
+    // 3. Primary Artist Top Songs
+    if (recommendedSongs.length < limit && currentSong.artistId) {
+        try {
+            const artistSongs = await getArtistSongs(currentSong.artistId, 1);
+            if (artistSongs && artistSongs.length > 0) {
+                artistSongs.slice(0, 6).forEach(addSong);
+            }
+        } catch (err) {
+            console.warn('[Autoplay] artist top tracks error:', err.message);
+        }
+    }
+
+    // 4. Peer Artists & Genre Affinity Matrix (Interleaved Round-Robin)
+    const rawArtist = currentSong.artistName || currentSong.artist || '';
+    const artistList = rawArtist.split(',').map(a => a.trim()).filter(Boolean);
+    const mainArtist = artistList[0] || 'Unknown Artist';
+    const mainArtistLower = mainArtist.toLowerCase();
+
+    let relatedArtists = RELATED_ARTISTS_MAP[mainArtistLower];
+    if (!relatedArtists || relatedArtists.length === 0) {
+        const matchKey = Object.keys(RELATED_ARTISTS_MAP).find(k => mainArtistLower.includes(k) || k.includes(mainArtistLower));
+        if (matchKey) {
+            relatedArtists = RELATED_ARTISTS_MAP[matchKey];
+        }
+    }
+
+    if (!relatedArtists || relatedArtists.length === 0) {
+        relatedArtists = artistList.slice(1);
+    }
+
+    const songLang = (currentSong.language || 'hindi').toLowerCase();
+    if ((!relatedArtists || relatedArtists.length === 0) && LANGUAGE_AFFINITY_MAP[songLang]) {
+        relatedArtists = LANGUAGE_AFFINITY_MAP[songLang];
+    }
+
+    const artistQueryPool = [mainArtist, ...(relatedArtists || [])].slice(0, 6);
+
+    try {
+        const fetchResults = await Promise.all(
+            artistQueryPool.map(async (art) => {
+                try {
+                    const res = await searchSongs(art, 0, 8);
+                    return res?.results || [];
+                } catch {
+                    return [];
+                }
+            })
+        );
+
+        let maxSongsPerArtist = Math.max(0, ...fetchResults.map(r => r.length));
+        for (let round = 0; round < maxSongsPerArtist; round++) {
+            for (let i = 0; i < fetchResults.length; i++) {
+                const song = fetchResults[i][round];
+                if (song) addSong(song);
+                if (recommendedSongs.length >= limit) break;
+            }
+            if (recommendedSongs.length >= limit) break;
+        }
+    } catch (err) {
+        console.warn('[Autoplay] parallel fetch error:', err.message);
+    }
+
+    // 5. Language-Locked Discovery Fallback (Prevents genre/language clash)
+    if (recommendedSongs.length < limit) {
+        try {
+            const mappedLang = LANGUAGE_MAP[songLang] || songLang || 'hindi';
+            const langResult = await searchSongs(`top ${mappedLang} songs`, 0, 15);
+            if (langResult?.results) {
+                langResult.results.forEach(addSong);
+            }
+        } catch (err) {
+            console.warn('[Autoplay] Language fallback error:', err.message);
+        }
+    }
+
+    return recommendedSongs.slice(0, limit);
+}
+
+
+
 export function normalizeSongTitle(title) {
-  if (!title || typeof title !== 'string') return '';
+  if (!title) return '';
   return title
     .toLowerCase()
-    // Strip parenthesized / bracketed content like (From "Brahmastra"), [Lofi], (Slowed + Reverb)
-    .replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/gu, '')
-    // Strip trailing descriptions after separators
-    .replace(/[-–—|:].*$/gu, '')
-    // Strip common release noise words that might be unbracketed
-    .replace(/\b(feat|ft|featuring|from|ost|soundtrack|version|reprise|remix|lofi|lo fi|slowed|reverb|acoustic|live|instrumental|audio|video|lyric|lyrics|full song|clean version|explicit|deluxe|remastered|remaster|hd)\b/gi, '')
-    // Preserve all Unicode letters, numbers, and combining vowel marks across Indic & world scripts
-    .replace(/[^\p{L}\p{N}\p{M}]/gu, '')
+    .replace(/\(.*?\)|\[.*?\]|-.*$/g, '')
+    .replace(/[^a-z0-9]/g, '')
     .trim();
 }
 
 export function normalizeArtistName(name) {
-  if (!name || typeof name !== 'string') return '';
-  return name
-    .toLowerCase()
-    .replace(/\([^)]*\)|\[[^\]]*\]/gu, '')
-    .replace(/\b(feat|ft|featuring|with|and|by)\b/gi, '')
-    .replace(/[^\p{L}\p{N}\p{M}]/gu, '')
-    .trim();
+  if (!name) return '';
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
 }
 
-export function getSongFingerprint(song) {
-  if (!song) return '';
-  const cleanTitle = normalizeSongTitle(song.title || song.name || '');
-  const rawArtist = song.artistName || song.artist || song.primaryArtists || '';
-  const firstArtist = (typeof rawArtist === 'string' ? rawArtist.split(',')[0] : '') || '';
-  const cleanArtist = normalizeArtistName(firstArtist);
-  return cleanTitle ? `${cleanTitle}::${cleanArtist}` : '';
-}
-
-export function areLanguagesCompatible(langA, langB) {
-  if (!langA || !langB) return true;
-  const a = langA.toLowerCase().trim();
-  const b = langB.toLowerCase().trim();
-  if (a === b) return true;
-  if ((a === 'hindi' && b === 'urdu') || (a === 'urdu' && b === 'hindi')) return true;
-  return false;
-}
-
-/**
- * Airtight Deduplicator: guards against duplicate IDs, identical audio streams (src),
- * duplicate clean core titles (e.g. "Kesariya" vs "Kesariya - Lofi Flip"), and title::artist fingerprints.
- */
 export function createDeduplicator(initialItems = []) {
   const seenIds = new Set();
-  const seenAudioUrls = new Set();
-  const seenFingerprints = new Set();
-  const seenTitles = new Set();
-
-  const register = (item) => {
-    if (!item) return;
-    if (typeof item === 'string' || typeof item === 'number') {
-      seenIds.add(String(item));
-      return;
-    }
-    if (item.id) seenIds.add(String(item.id));
-    if (item.sourceId) seenIds.add(String(item.sourceId));
-    if (item._id) seenIds.add(String(item._id));
-    if (item.src) seenAudioUrls.add(String(item.src));
-
-    const cleanT = normalizeSongTitle(item.title || item.name || '');
-    if (cleanT && cleanT.length >= 3) {
-      seenTitles.add(cleanT);
-    }
-
+  const seenFps = new Set();
+  const add = (item) => {
+    if (!item) return false;
+    const id = item.id || item.sourceId || item._id;
+    const sId = id ? String(id) : null;
     const fp = getSongFingerprint(item);
-    if (fp) seenFingerprints.add(fp);
-  };
-
-  initialItems.forEach(register);
-
-  const isDuplicate = (song) => {
-    if (!song) return true;
-    const sId = String(song.id || song.sourceId || song._id || '');
-    if (sId && seenIds.has(sId)) return true;
-
-    if (song.src && seenAudioUrls.has(String(song.src))) return true;
-
-    const cleanT = normalizeSongTitle(song.title || song.name || '');
-    // For core titles with 3+ characters (e.g. "Kesariya", "Starboy", "Apna Bana Le"):
-    // Never allow two versions of the same song in the queue!
-    if (cleanT && cleanT.length >= 3 && seenTitles.has(cleanT)) {
-      return true;
+    if ((sId && seenIds.has(sId)) || (fp && seenFps.has(fp))) {
+      return false;
     }
-
-    // For short titles (< 3 chars, e.g. "Tu", "Ma"), check title + artist fingerprint
-    const fp = getSongFingerprint(song);
-    if (fp && seenFingerprints.has(fp)) {
-      return true;
-    }
-
-    return false;
-  };
-
-  const add = (song) => {
-    if (isDuplicate(song)) return false;
-    register(song);
+    if (sId) seenIds.add(sId);
+    if (fp) seenFps.add(fp);
     return true;
   };
-
-  return { register, isDuplicate, add };
-}
-
-export function deduplicateSongList(songs = [], existingItems = []) {
-  if (!Array.isArray(songs)) return [];
-  const dedup = createDeduplicator(existingItems);
-  return songs.filter(s => dedup.add(s));
-}
-
-export async function getSongSuggestions(songId) {
-  if (!songId) return [];
-  try {
-    let data = await apiFetch(`/songs/${encodeURIComponent(songId)}/suggestions?limit=20`);
-    if (!data || (Array.isArray(data) && data.length === 0)) {
-      data = await apiFetch(`/songs/${encodeURIComponent(songId)}/suggestions`);
+  initialItems.forEach(item => add(item));
+  return {
+    add,
+    has: (item) => {
+      if (!item) return false;
+      const id = item.id || item.sourceId || item._id;
+      const sId = id ? String(id) : null;
+      const fp = getSongFingerprint(item);
+      return (sId && seenIds.has(sId)) || (fp && seenFps.has(fp));
     }
-    if (!data || (Array.isArray(data) && data.length === 0)) {
-      data = await apiFetch(`/songs?id=${encodeURIComponent(songId)}&suggestions=true`);
-    }
-    if (data) {
-      const rawList = Array.isArray(data) ? data : (data.results || data.songs || data.data || []);
-      return rawList.map(normalizeSong).filter(s => s && s.src);
-    }
-  } catch (e) {
-    console.warn('[getSongSuggestions error]', e.message);
-  }
-  return [];
-}
-
-// ── SPOTIFY-GRADE CONTINUOUS AUTOPLAY & RADIO RECOMMENDATIONS ENGINE ───────
-export async function getAutoplayRecommendations(currentSong, excludedInput = [], limit = 20) {
-  if (!currentSong) return [];
-
-  const rawArtist = currentSong.artistName || currentSong.artist || '';
-  const artistList = rawArtist.split(',').map(a => a.trim()).filter(Boolean);
-  const mainArtist = artistList[0] || '';
-  const songLang = (currentSong.language || 'hindi').toLowerCase().trim();
-
-  // 1. Initialize Deduplicator with all excluded context (current song, active queue, history)
-  const initialExcluded = [currentSong, ...(Array.isArray(excludedInput) ? excludedInput : [])];
-  const deduplicator = createDeduplicator(initialExcluded);
-
-  // 2. Classify audience taste cluster
-  const cluster = findTasteCluster(currentSong);
-
-  // Buckets for Spotify-grade listening curve interleaving
-  const suggestionBucket = [];
-  const albumBucket = [];
-  const artistBucket = [];
-  const peerBuckets = [];
-  const fallbackBucket = [];
-
-  const filterAndFormat = (song, tier) => {
-    if (!song || !song.id || !song.title || !song.src) return null;
-    if (song.language && !areLanguagesCompatible(songLang, song.language)) return null;
-    if (deduplicator.isDuplicate(song)) return null;
-
-    deduplicator.add(song);
-    return {
-      ...song,
-      isAutoplayItem: true,
-      radioSeedSong: currentSong.title,
-      recommendationTier: tier,
-    };
   };
-
-  // ── TIER 1: JioSaavn Collaborative Filtering Suggestions ──────────────
-  if (currentSong.id) {
-    try {
-      const rawSuggestions = await getSongSuggestions(currentSong.id);
-      if (rawSuggestions && rawSuggestions.length > 0) {
-        for (const s of rawSuggestions) {
-          const item = filterAndFormat(s, 'suggestion');
-          if (item) suggestionBucket.push(item);
-          if (suggestionBucket.length >= 10) break;
-        }
-      }
-    } catch (err) {
-      console.warn('[Autoplay] suggestions error:', err.message);
-    }
-  }
-
-  // ── TIER 2: Sibling Album / OST Companions (Atmospheric cohort) ─────────
-  if (currentSong.albumId || currentSong.album) {
-    try {
-      let albumTracks = [];
-      if (currentSong.albumId) {
-        const album = await getAlbumById(currentSong.albumId);
-        if (album?.songs && album.songs.length > 0) {
-          albumTracks = album.songs;
-        }
-      }
-      if (albumTracks.length === 0 && currentSong.album && currentSong.album !== 'Unknown Album') {
-        const albumResult = await searchSongs(currentSong.album, 0, 6);
-        albumTracks = albumResult?.results || [];
-      }
-
-      for (const s of albumTracks) {
-        const item = filterAndFormat(s, 'album');
-        if (item) albumBucket.push(item);
-        if (albumBucket.length >= 3) break;
-      }
-    } catch (err) {
-      console.warn('[Autoplay] Album companions error:', err.message);
-    }
-  }
-
-  // ── TIER 3: Primary Artist Signature Top Hits ──────────────────────────
-  if (mainArtist) {
-    try {
-      const artistRes = await searchSongs(mainArtist, 0, 6);
-      if (artistRes?.results) {
-        for (const s of artistRes.results) {
-          const item = filterAndFormat(s, 'artist');
-          if (item) artistBucket.push(item);
-          if (artistBucket.length >= 3) break;
-        }
-      }
-    } catch (err) {
-      console.warn('[Autoplay] artist top tracks error:', err.message);
-    }
-  }
-
-  // ── TIER 4: Spotify Affinity Peer Artists ──────────────────────────────
-  // Select peer artists that match this audience taste cluster and differ from seed artist
-  const clusterPeers = (cluster?.peerArtists || []).filter(p => !p.toLowerCase().includes(mainArtist.toLowerCase()));
-  const chosenPeers = clusterPeers.length > 0 ? clusterPeers.slice(0, 4) : (LANGUAGE_AFFINITY_MAP[songLang] || []).slice(0, 4);
-
-  for (const peer of chosenPeers) {
-    try {
-      const peerRes = await searchSongs(peer, 0, 5);
-      const peerSongs = [];
-      if (peerRes?.results) {
-        for (const s of peerRes.results) {
-          const item = filterAndFormat(s, 'peer');
-          if (item) peerSongs.push(item);
-          if (peerSongs.length >= 3) break;
-        }
-      }
-      if (peerSongs.length > 0) {
-        peerBuckets.push(peerSongs);
-      }
-    } catch (err) {
-      console.warn('[Autoplay] peer artist error:', err.message);
-    }
-  }
-
-  // ── TIER 5: Vibe-Specific Targeted Fallback (Never generic chart noise!) ───
-  const totalGathered = suggestionBucket.length + albumBucket.length + artistBucket.length + peerBuckets.reduce((acc, b) => acc + b.length, 0);
-  if (totalGathered < limit) {
-    const targetQueries = cluster?.targetQueries || [`${mainArtist} hits`, `top ${songLang} melodies`];
-    for (const q of targetQueries.slice(0, 2)) {
-      try {
-        const fallbackRes = await searchSongs(q, 0, 6);
-        if (fallbackRes?.results) {
-          for (const s of fallbackRes.results) {
-            const item = filterAndFormat(s, 'vibe_fallback');
-            if (item) fallbackBucket.push(item);
-            if (fallbackBucket.length >= 6) break;
-          }
-        }
-      } catch (err) {
-        console.warn('[Autoplay] targeted fallback error:', err.message);
-      }
-    }
-  }
-
-  // ── TIER 6: Spotify Radio Flow Curve (Interleaving) ─────────────────────
-  // Interleave tracks round-robin so the user experiences an authentic DJ/radio flow:
-  // Suggestion -> Peer 1 -> Album track -> Suggestion -> Peer 2 -> Artist hit -> Peer 3...
-  const finalInterleaved = [];
-  let sIdx = 0;
-  let albIdx = 0;
-  let artIdx = 0;
-  const peerIdxs = peerBuckets.map(() => 0);
-
-  while (finalInterleaved.length < limit) {
-    let addedInRound = false;
-
-    // 1. Direct Suggestion (Immediate continuity)
-    if (sIdx < suggestionBucket.length) {
-      finalInterleaved.push(suggestionBucket[sIdx++]);
-      addedInRound = true;
-      if (finalInterleaved.length >= limit) break;
-    }
-
-    // 2. Peer Artist 1
-    if (peerBuckets.length > 0 && peerIdxs[0] < peerBuckets[0].length) {
-      finalInterleaved.push(peerBuckets[0][peerIdxs[0]++]);
-      addedInRound = true;
-      if (finalInterleaved.length >= limit) break;
-    }
-
-    // 3. Album Companion Track (OST atmospheric immersion)
-    if (albIdx < albumBucket.length) {
-      finalInterleaved.push(albumBucket[albIdx++]);
-      addedInRound = true;
-      if (finalInterleaved.length >= limit) break;
-    }
-
-    // 4. Direct Suggestion 2
-    if (sIdx < suggestionBucket.length) {
-      finalInterleaved.push(suggestionBucket[sIdx++]);
-      addedInRound = true;
-      if (finalInterleaved.length >= limit) break;
-    }
-
-    // 5. Peer Artist 2
-    if (peerBuckets.length > 1 && peerIdxs[1] < peerBuckets[1].length) {
-      finalInterleaved.push(peerBuckets[1][peerIdxs[1]++]);
-      addedInRound = true;
-      if (finalInterleaved.length >= limit) break;
-    }
-
-    // 6. Primary Artist Hit Track
-    if (artIdx < artistBucket.length) {
-      finalInterleaved.push(artistBucket[artIdx++]);
-      addedInRound = true;
-      if (finalInterleaved.length >= limit) break;
-    }
-
-    // 7. Remaining Peer Artists (3 and 4)
-    for (let p = 2; p < peerBuckets.length; p++) {
-      if (peerIdxs[p] < peerBuckets[p].length) {
-        finalInterleaved.push(peerBuckets[p][peerIdxs[p]++]);
-        addedInRound = true;
-        if (finalInterleaved.length >= limit) break;
-      }
-    }
-
-    // 8. Targeted Vibe Fallback
-    if (fallbackBucket.length > 0) {
-      const fbItem = fallbackBucket.shift();
-      if (fbItem) {
-        finalInterleaved.push(fbItem);
-        addedInRound = true;
-        if (finalInterleaved.length >= limit) break;
-      }
-    }
-
-    if (!addedInRound) break;
-  }
-
-  return finalInterleaved.slice(0, limit);
 }
-
-
-
