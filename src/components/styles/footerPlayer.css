@@ -2187,3 +2187,35 @@
 .MuiModal-root {
   z-index: 99999 !important;
 }
+
+.fs-dolby-pill {
+  width: 46px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(16, 20, 32, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.fs-dolby-icon {
+  width: 23px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.65);
+  transition: all 0.25s ease;
+}
+
+.fs-dolby-pill.active {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.2);
+}
+
+.fs-dolby-pill.active .fs-dolby-icon {
+  color: #00e5ff;
+  filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.7));
+}
