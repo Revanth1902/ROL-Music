@@ -1362,12 +1362,6 @@ export default function FooterPlayer() {
                       <span className="fs-lyrics-title">{current.title}</span>
                       <span className="fs-lyrics-artist">{current.artistName}</span>
                     </div>
-                    {lyricsData?.synced ? (
-                      <span className="fs-lyrics-sync-pill">
-                        <span className="fs-sync-dot" />
-                        LIVE SYNC
-                      </span>
-                    ) : null}
                   </div>
 
                   <div className="fs-lyrics-scroll-panel">
