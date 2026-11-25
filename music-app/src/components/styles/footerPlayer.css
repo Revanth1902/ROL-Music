@@ -612,7 +612,59 @@
   color: white;
 }
 
-/* ── Slider Layout ── */
+/* ── Top Capsule Switcher Tabs (Song / Queue / Lyrics) ── */
+.fs-capsule-tabs {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 4px;
+  margin: 6px 20px 12px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.fs-capsule-tab {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 8px 12px;
+  border-radius: 9999px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.fs-capsule-tab:hover {
+  color: #ffffff;
+}
+
+.fs-capsule-tab.active {
+  background: #ffffff;
+  color: #0b0f19;
+  font-weight: 700;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+  transform: translateY(0);
+}
+
+.fs-capsule-tab:active {
+  transform: scale(0.96);
+}
+
+/* ── Slider Layout (3-Panel: Song, Queue, Lyrics) ── */
 .fs-slider-container {
   flex: 1;
   width: 100%;
@@ -622,23 +674,28 @@
 
 .fs-slider {
   display: flex;
-  width: 200%;
+  width: 300%;
   height: 100%;
-  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.42s cubic-bezier(0.25, 1, 0.5, 1);
   will-change: transform;
 }
 
-.fs-slider.show-song {
-  transform: translateX(0);
+.fs-slider.tab-song {
+  transform: translateX(0%);
 }
 
-.fs-slider.show-queue {
-  transform: translateX(-50%);
+.fs-slider.tab-queue {
+  transform: translateX(-33.333333%);
+}
+
+.fs-slider.tab-lyrics {
+  transform: translateX(-66.666667%);
 }
 
 .fs-view-song,
-.fs-view-queue {
-  width: 50%;
+.fs-view-queue,
+.fs-view-lyrics {
+  width: 33.333333%;
   height: 100%;
   flex-shrink: 0;
   display: flex;
@@ -658,75 +715,72 @@
   /* inner queue strip handles scroll */
 }
 
-/* ── Album art Flip ── */
-.fs-art-flip-container {
-  padding: 4px 20px 10px;
+.fs-view-lyrics {
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Album Art (Clean, responsive, non-flipping) ── */
+.fs-art-container {
+  padding: 6px 20px 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
-  perspective: 1200px;
   min-height: 0;
 }
 
-.fs-art-flipper {
-  width: min(70vw, 36vh, 290px);
-  height: min(70vw, 36vh, 290px);
-  position: relative;
-  transition: transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1);
-  transform-style: preserve-3d;
-}
-
-.fs-art-flip-container.flipped .fs-art-flipper {
-  transform: rotateY(180deg);
-}
-
-.fs-art-front,
-.fs-art-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  border-radius: 18px;
-}
-
-.fs-art-front {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fs-art-back {
-  transform: rotateY(180deg);
-  background: rgba(18, 22, 38, 0.85);
-  /* Slightly transparent dark */
-  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  overflow: hidden;
-}
-
 .fs-art-wrap {
-  width: 100%;
-  height: 100%;
+  width: min(72vw, 36vh, 310px);
+  height: min(72vw, 36vh, 310px);
   position: relative;
+  border-radius: 28px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  transition: transform 0.3s ease;
 }
 
 .fs-art {
   width: 100%;
   height: 100%;
-  border-radius: 18px;
   object-fit: cover;
-  box-shadow:
-    0 28px 64px rgba(0, 0, 0, 0.75),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
+  display: block;
   animation: artPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transition: transform 0.3s ease;
 }
 
-.fs-art:active {
+.fs-art-wrap:active {
   transform: scale(0.97);
+}
+
+.fs-art-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(18, 22, 34, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  padding: 4px 11px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #ffffff;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.fs-art-badge .fs-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.85);
 }
 
 @keyframes artPop {
@@ -1794,44 +1848,208 @@
           text-shadow: 0 2px 8px rgba(108, 99, 255, 0.5);
         }
 
-/* Mobile Lyrics Container - Fits in Flip Back Face */
-.mobile-lyrics-container {
-  width: 100%;
-  height: 100%;
+/* ══════════════════════════════════════════
+   SPOTIFY-GRADE DEDICATED LYRICS PANEL
+   ══════════════════════════════════════════ */
+.fs-lyrics-header-bar {
   display: flex;
-  flex-direction: column;
-  padding: 16px 16px;
-  text-align: center;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  will-change: scroll-position;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 24px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
-.mobile-lyrics-container::-webkit-scrollbar {
+.fs-lyrics-mini-art {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.fs-lyrics-header-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fs-lyrics-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-lyrics-artist {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-lyrics-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #4ade80;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.fs-lyrics-sync-pill .fs-sync-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.7);
+  animation: syncPulse 1.8s infinite;
+}
+
+@keyframes syncPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.fs-lyrics-scroll-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 24px 40px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  will-change: scroll-position;
+  display: flex;
+  flex-direction: column;
+}
+
+.fs-lyrics-scroll-panel::-webkit-scrollbar {
   display: none;
 }
 
-.m-lyrics-header {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 16px;
-  opacity: 0.8;
+.fs-spotify-synced-lyrics {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 40px;
 }
 
-.synced-lyrics-mobile .m-lrc-line {
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 8px 0;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+.fs-spotify-lyric-line {
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.38;
+  color: rgba(255, 255, 255, 0.32);
+  margin: 0;
+  padding: 6px 4px;
+  cursor: pointer;
+  transition: all 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: left center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.fs-spotify-lyric-line:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.fs-spotify-lyric-line.active {
+  color: #ffffff;
+  font-size: 1.55rem;
+  font-weight: 800;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.45), 0 2px 8px rgba(0, 0, 0, 0.8);
+  transform: scale(1.02);
+  opacity: 1;
+}
+
+.fs-spotify-lyric-line.past {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.fs-spotify-plain-lyrics {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 40px;
+}
+
+.fs-plain-lyric-line {
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
   line-height: 1.5;
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0;
 }
 
-.synced-lyrics-mobile .m-lrc-line.active {
-  color: #a78bfa;
+.fs-lyrics-status-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.fs-lyrics-status-txt {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.fs-lyrics-empty-title {
+  font-size: 1.1rem;
   font-weight: 700;
-  text-shadow: 0 0 16px rgba(167, 139, 250, 0.4);
+  color: #ffffff;
+  margin: 0 0 6px;
+}
+
+.fs-lyrics-empty-sub {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+}
+
+/* Docked controls in lyrics view */
+.fs-lyrics-dock {
+  padding: 8px 20px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: rgba(8, 12, 24, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.fs-lyrics-dock-seek {
+  width: 100%;
+}
+
+.fs-lyrics-dock-ctrls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.fs-lyrics-play-btn {
+  width: 54px;
+  height: 54px;
 }
 
 /* Ensure MUI Menus, Dialogs, Modals & Popovers sit above Fullscreen Player (z-index 3000) */

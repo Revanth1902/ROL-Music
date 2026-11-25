@@ -74,7 +74,7 @@ export default function FooterPlayer() {
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsError, setLyricsError] = useState(false);
   const [showDesktopLyrics, setShowDesktopLyrics] = useState(false);
-  const [isLyricsFlipped, setIsLyricsFlipped] = useState(false);
+  const [activeTab, setActiveTab] = useState('song'); // 'song' | 'queue' | 'lyrics'
   const [dolbyToast, setDolbyToast] = useState('');
 
   const handleToggleDolby = (e) => {
@@ -241,7 +241,7 @@ export default function FooterPlayer() {
     }
     setOpenFull(false);
     setShowQueue(false);
-    setIsLyricsFlipped(false);
+    setActiveTab('song');
   }, []);
 
   const artistList = useMemo(() => {
@@ -262,7 +262,7 @@ export default function FooterPlayer() {
     // 1. Dismiss fullscreen UI state cleanly
     setOpenFull(false);
     setShowQueue(false);
-    setIsLyricsFlipped(false);
+    setActiveTab('song');
 
     // 2. If a state was pushed to history to allow back-button to close fullscreen,
     // replace that state with the target URL so we do not cause popstate race conditions
@@ -354,7 +354,7 @@ export default function FooterPlayer() {
         isHistoryPushedRef.current = false;
         setOpenFull(false);
         setShowQueue(false);
-        setIsLyricsFlipped(false);
+        setActiveTab('song');
       }
     };
 
@@ -399,7 +399,7 @@ export default function FooterPlayer() {
         isHistoryPushedRef.current = false;
         setOpenFull(false);
         setShowQueue(false);
-        setIsLyricsFlipped(false);
+        setActiveTab('song');
       }
     }
   }, [location.pathname, openFull]);
@@ -470,10 +470,10 @@ export default function FooterPlayer() {
 
   // Auto-scroll active lyrics
   useEffect(() => {
-    if (activeLyricRef.current && isLyricsFlipped) {
+    if (activeLyricRef.current && activeTab === 'lyrics') {
       activeLyricRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [progress, isLyricsFlipped]);
+  }, [progress, activeTab]);
 
   useEffect(() => {
     if (desktopActiveLyricRef.current && showDesktopLyrics) {
@@ -950,76 +950,57 @@ export default function FooterPlayer() {
               <ThreeDotMenu song={current} />
             </div>
 
-            {/* Tab switcher: Song, Queue, Lyrics */}
-            <div className="fs-tabs">
+            {/* Tab switcher: Song, Queue, Lyrics (Capsule design matching user screenshot) */}
+            <div className="fs-capsule-tabs">
               <button
-                className={`fs-tab ${!showQueue && !isLyricsFlipped ? 'active' : ''}`}
-                onClick={() => { setShowQueue(false); setIsLyricsFlipped(false); }}
+                type="button"
+                className={`fs-capsule-tab ${activeTab === 'song' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic(10);
+                  setActiveTab('song');
+                }}
               >
                 Song
               </button>
               <button
-                className={`fs-tab ${showQueue ? 'active' : ''}`}
-                onClick={() => { setShowQueue(true); setIsLyricsFlipped(false); }}
+                type="button"
+                className={`fs-capsule-tab ${activeTab === 'queue' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic(10);
+                  setActiveTab('queue');
+                }}
               >
-                Queue {queue.length > 0 && `(${queue.length})`}
+                Queue {queue.length > 0 ? `(${queue.length})` : ''}
               </button>
               <button
-                className={`fs-tab ${isLyricsFlipped && !showQueue ? 'active' : ''}`}
-                onClick={() => { setIsLyricsFlipped(true); setShowQueue(false); }}
+                type="button"
+                className={`fs-capsule-tab ${activeTab === 'lyrics' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic(10);
+                  setActiveTab('lyrics');
+                }}
               >
                 Lyrics
               </button>
             </div>
 
             <div className="fs-slider-container">
-              <div className={`fs-slider ${showQueue ? 'show-queue' : 'show-song'}`}>
+              <div className={`fs-slider tab-${activeTab}`}>
 
                 {/* ── VIEW: SONG ── */}
                 <div className="fs-view-song">
-                  {/* ── Album Art (Flip Container) ── */}
-                  <div className={`fs-art-flip-container ${isLyricsFlipped ? "flipped" : ""}`}>
-                    <div className="fs-art-flipper">
-                      {/* Front: Image */}
-                      <div className="fs-art-front">
-                        <div className="fs-art-wrap">
-                          <img
-                            src={current.cover}
-                            className="fs-art"
-                            alt={current.title}
-                            onError={e => { e.target.src = `https://ui-avatars.com/api/?name=♪&background=1a1040&color=a78bfa&size=320` }}
-                          />
-                          {/* ROL watermark */}
-                          <img src={rolLogo} className="fs-art-logo" alt="ROL" aria-hidden />
-                        </div>
-                      </div>
-
-                      {/* Back: Lyrics */}
-                      <div className="fs-art-back">
-                        <div className="mobile-lyrics-container">
-                          {lyricsLoading && <div className="lyrics-loader"><div className="heart-pulse-loader" style={{ margin: '0 auto' }}></div><p style={{ marginTop: '10px', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>Fetching lyrics...</p></div>}
-                          {lyricsError && <div className="lyrics-error" style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', fontSize: '0.9rem', padding: '20px 0' }}>No lyrics available for this song</div>}
-                          {lyricsData?.synced ? (
-                            <div className="synced-lyrics-mobile">
-                              {lyricsData.synced.map((lrc, i) => {
-                                const isActive = progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time);
-                                return (
-                                  <p 
-                                    key={i} 
-                                    className={`m-lrc-line ${isActive ? "active" : ""}`}
-                                    ref={isActive ? activeLyricRef : null}
-                                  >
-                                    {lrc.text || <br />}
-                                  </p>
-                                );
-                              })}
-                            </div>
-                          ) : lyricsData?.plain ? (
-                            <div className="m-plain-lyrics" style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', textAlign: 'center', paddingBottom: '40px' }}>{lyricsData.plain}</div>
-                          ) : (
-                            !lyricsLoading && !lyricsError && <div className="m-plain-lyrics" style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: '40px' }}>Lyrics not found</div>
-                          )}
-                        </div>
+                  {/* ── Album Art (Clean, responsive, non-flipping) ── */}
+                  <div className="fs-art-container">
+                    <div className="fs-art-wrap">
+                      <img
+                        src={current.cover}
+                        className="fs-art"
+                        alt={current.title}
+                        onError={e => { e.target.src = `https://ui-avatars.com/api/?name=♪&background=1a1040&color=a78bfa&size=320`; }}
+                      />
+                      <div className="fs-art-badge">
+                        <span className="fs-badge-dot" />
+                        ROL
                       </div>
                     </div>
                   </div>
@@ -1186,24 +1167,24 @@ export default function FooterPlayer() {
                     </button>
 
                     <button
-                      className={`fs-bottom-btn ${isLyricsFlipped ? 'active' : ''}`}
+                      className={`fs-bottom-btn ${activeTab === 'lyrics' ? 'active' : ''}`}
                       onClick={() => {
-                        setIsLyricsFlipped(l => !l);
-                        setShowQueue(false);
+                        triggerHaptic(10);
+                        setActiveTab(t => (t === 'lyrics' ? 'song' : 'lyrics'));
                       }}
-                      title={isLyricsFlipped ? 'Back to Cover' : 'Show Lyrics'}
+                      title="Lyrics"
                     >
                       <LyricsIcon sx={{ fontSize: '1.25rem' }} />
                       <span>Lyrics</span>
                     </button>
 
                     <button
-                      className={`fs-bottom-btn ${showQueue ? 'active' : ''}`}
+                      className={`fs-bottom-btn ${activeTab === 'queue' ? 'active' : ''}`}
                       onClick={() => {
-                        setShowQueue(q => !q);
-                        setIsLyricsFlipped(false);
+                        triggerHaptic(10);
+                        setActiveTab(t => (t === 'queue' ? 'song' : 'queue'));
                       }}
-                      title={showQueue ? 'Close Queue' : 'Open Queue'}
+                      title="Queue"
                     >
                       <QueueMusicIcon sx={{ fontSize: '1.25rem' }} />
                       <span>Queue</span>
@@ -1317,6 +1298,121 @@ export default function FooterPlayer() {
                         </Droppable>
                       </DragDropContext>
                     )}
+                  </div>
+                </div>
+
+                {/* ── VIEW: LYRICS (Spotify-grade typography, tap-to-seek, smooth auto-scroll) ── */}
+                <div className="fs-view-lyrics">
+                  <div className="fs-lyrics-header-bar">
+                    <img
+                      src={current.cover}
+                      className="fs-lyrics-mini-art"
+                      alt={current.title}
+                      onError={e => { e.target.src = `https://ui-avatars.com/api/?name=♪&background=1a1040&color=a78bfa&size=80`; }}
+                    />
+                    <div className="fs-lyrics-header-info">
+                      <span className="fs-lyrics-title">{current.title}</span>
+                      <span className="fs-lyrics-artist">{current.artistName}</span>
+                    </div>
+                    {lyricsData?.synced ? (
+                      <span className="fs-lyrics-sync-pill">
+                        <span className="fs-sync-dot" />
+                        LIVE SYNC
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="fs-lyrics-scroll-panel">
+                    {lyricsLoading && (
+                      <div className="fs-lyrics-status-wrap">
+                        <div className="heart-pulse-loader" style={{ margin: '0 auto 16px' }} />
+                        <p className="fs-lyrics-status-txt">Searching lyrics for {current.title}...</p>
+                      </div>
+                    )}
+
+                    {lyricsError && !lyricsLoading && (
+                      <div className="fs-lyrics-status-wrap">
+                        <LyricsIcon sx={{ fontSize: '2.5rem', opacity: 0.35, mb: 1.5, color: '#a78bfa' }} />
+                        <p className="fs-lyrics-empty-title">Couldn't find lyrics for this song</p>
+                        <p className="fs-lyrics-empty-sub">Enjoy the track with Dolby Audio Spatial Enhancement!</p>
+                      </div>
+                    )}
+
+                    {!lyricsLoading && !lyricsError && lyricsData?.synced && (
+                      <div className="fs-spotify-synced-lyrics">
+                        {lyricsData.synced.map((lrc, i) => {
+                          const isActive = progress >= lrc.time && (!lyricsData.synced[i + 1] || progress < lyricsData.synced[i + 1].time);
+                          const isPast = progress > lrc.time && !isActive;
+                          return (
+                            <p
+                              key={i}
+                              className={`fs-spotify-lyric-line ${isActive ? 'active' : isPast ? 'past' : ''}`}
+                              ref={isActive ? activeLyricRef : null}
+                              onClick={() => {
+                                triggerHaptic(10);
+                                seek(lrc.time);
+                              }}
+                              title="Tap to jump to line"
+                            >
+                              {lrc.text || '♪'}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {!lyricsLoading && !lyricsError && !lyricsData?.synced && lyricsData?.plain && (
+                      <div className="fs-spotify-plain-lyrics">
+                        {lyricsData.plain.split('\n').map((line, idx) => (
+                          <p key={idx} className="fs-plain-lyric-line">{line || '\u00A0'}</p>
+                        ))}
+                      </div>
+                    )}
+
+                    {!lyricsLoading && !lyricsError && !lyricsData?.synced && !lyricsData?.plain && (
+                      <div className="fs-lyrics-status-wrap">
+                        <p className="fs-lyrics-empty-title">No lyrics found</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Docked seek & primary controls so user can control playback seamlessly */}
+                  <div className="fs-lyrics-dock">
+                    <div className="fs-lyrics-dock-seek">
+                      <WaveProgressBar
+                        progress={progress}
+                        duration={duration}
+                        onSeek={seek}
+                        centerNode={
+                          <button
+                            className={`fs-dolby-pill ${dolbyAudio ? 'active' : ''}`}
+                            onClick={handleToggleDolby}
+                            type="button"
+                          >
+                            <span className="fs-dolby-brand">DOLBY</span>
+                            {dolbyAudio && <span className="fs-dolby-dot" />}
+                            <span className="fs-dolby-state">{dolbyAudio ? 'SPATIAL ON' : 'OFF'}</span>
+                          </button>
+                        }
+                      />
+                    </div>
+                    <div className="fs-lyrics-dock-ctrls">
+                      <button className="fs-ctrl-btn" onClick={playPrevious} title="Previous">
+                        <SkipPreviousIcon sx={{ fontSize: '1.85rem' }} />
+                      </button>
+                      <button className="fs-play-btn fs-lyrics-play-btn" onClick={togglePlay} title={playing ? 'Pause' : 'Play'}>
+                        {audioLoading ? (
+                          <div className="heart-pulse-loader" />
+                        ) : playing ? (
+                          <PauseIcon sx={{ fontSize: '2rem' }} />
+                        ) : (
+                          <PlayArrowIcon sx={{ fontSize: '2rem' }} />
+                        )}
+                      </button>
+                      <button className="fs-ctrl-btn" onClick={playNext} title="Next">
+                        <SkipNextIcon sx={{ fontSize: '1.85rem' }} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
