@@ -1108,41 +1108,20 @@ export default function FooterPlayer() {
                       onSeek={seek}
                       centerNode={
                         <button
-                          className={`fs-dolby-pill ${dolbyAudio ? 'active' : ''}`}
+                          className={`fs-dolby-icon-btn ${dolbyAudio ? 'active' : ''}`}
                           onClick={handleToggleDolby}
                           type="button"
-                          title={dolbyAudio ? "Dolby Audio ON" : "Dolby Audio OFF"}
-                          style={{
-                            width: '42px',
-                            height: '36px',
-                            padding: 0,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '50%',
-                            background: dolbyAudio
-                              ? 'rgba(0, 229, 255, 0.15)'
-                              : 'rgba(255, 255, 255, 0.08)',
-                            border: dolbyAudio
-                              ? '1px solid rgba(0, 229, 255, 0.5)'
-                              : '1px solid rgba(255, 255, 255, 0.15)',
-                            cursor: 'pointer',
-                            transition: 'all 0.25s ease'
-                          }}
+                          title={dolbyAudio ? "Dolby Audio: Active (Tap to turn off)" : "Dolby Audio: Off (Tap to turn on)"}
+                          aria-label={dolbyAudio ? "Dolby Audio ON" : "Dolby Audio OFF"}
                         >
-                          <img
-                            src="/images/dolby-logo.svg"
-                            alt="Dolby"
-                            style={{
-                              width: '23px',
-                              height: '20px',
-                              objectFit: 'contain',
-                              filter: dolbyAudio
-                                ? 'brightness(0) saturate(100%) invert(75%) sepia(90%) saturate(1500%) hue-rotate(145deg)'
-                                : 'brightness(0) invert(1)',
-                              transition: 'filter 0.25s ease'
-                            }}
-                          />
+                          <svg className="fs-dolby-svg" viewBox="0 0 18 16" fill="currentColor" aria-hidden="true">
+                            <path
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M8 0H3C1.3 0 0 1.3 0 3V13C0 14.7 1.3 16 3 16H8V0ZM6 3H3C2.1 3 1.6 3.5 1.6 4.6V11.4C1.6 12.5 2.1 13 3 13H6V3ZM10 0H15C16.7 0 18 1.3 18 3V13C18 14.7 16.7 16 15 16H10V0ZM12 3H15C15.9 3 16.4 3.5 16.4 4.6V11.4C16.4 12.5 15.9 13 15 13H12V3Z"
+                            />
+                          </svg>
+                          {dolbyAudio && <span className="fs-dolby-glow-dot" />}
                         </button>
                       }
                     />
@@ -1443,24 +1422,20 @@ export default function FooterPlayer() {
                         onSeek={seek}
                         centerNode={
                           <button
-                            className={`fs-dolby-pill ${dolbyAudio ? 'active' : ''}`}
+                            className={`fs-dolby-icon-btn ${dolbyAudio ? 'active' : ''}`}
                             onClick={handleToggleDolby}
                             type="button"
-                            title={dolbyAudio ? "Dolby Audio ON (Spatial Virtualizer Active) — Tap to turn off" : "Dolby Audio OFF — Tap to enable True Dolby Spatial sound"}
+                            title={dolbyAudio ? "Dolby Audio: Active (Tap to turn off)" : "Dolby Audio: Off (Tap to turn on)"}
+                            aria-label={dolbyAudio ? "Dolby Audio ON" : "Dolby Audio OFF"}
                           >
-                            <svg className="fs-dolby-icon" viewBox="0 0 18 16" fill="currentColor" aria-hidden="true">
+                            <svg className="fs-dolby-svg" viewBox="0 0 18 16" fill="currentColor" aria-hidden="true">
                               <path
                                 fillRule="evenodd"
                                 clipRule="evenodd"
                                 d="M8 0H3C1.3 0 0 1.3 0 3V13C0 14.7 1.3 16 3 16H8V0ZM6 3H3C2.1 3 1.6 3.5 1.6 4.6V11.4C1.6 12.5 2.1 13 3 13H6V3ZM10 0H15C16.7 0 18 1.3 18 3V13C18 14.7 16.7 16 15 16H10V0ZM12 3H15C15.9 3 16.4 3.5 16.4 4.6V11.4C16.4 12.5 15.9 13 15 13H12V3Z"
                               />
                             </svg>
-                            <span className="fs-dolby-brand">DOLBY AUDIO</span>
-                            <span className="fs-dolby-sep">•</span>
-                            <span className={`fs-dolby-status-pill ${dolbyAudio ? 'on' : 'off'}`}>
-                              <span className="fs-dolby-dot" />
-                              <span className="fs-dolby-state">{dolbyAudio ? 'SPATIAL ON' : 'OFF'}</span>
-                            </span>
+                            {dolbyAudio && <span className="fs-dolby-glow-dot" />}
                           </button>
                         }
                       />
