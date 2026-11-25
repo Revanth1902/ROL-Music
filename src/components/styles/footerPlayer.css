@@ -670,34 +670,38 @@
   width: 100%;
   overflow: hidden;
   position: relative;
+  min-height: 0;
 }
 
 .fs-slider {
   display: flex;
-  width: 300%;
+  width: 100%;
   height: 100%;
-  transition: transform 0.42s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 
 .fs-slider.tab-song {
-  transform: translateX(0%);
+  transform: translate3d(0%, 0, 0);
 }
 
 .fs-slider.tab-queue {
-  transform: translateX(-33.333333%);
+  transform: translate3d(-100%, 0, 0);
 }
 
 .fs-slider.tab-lyrics {
-  transform: translateX(-66.666667%);
+  transform: translate3d(-200%, 0, 0);
 }
 
 .fs-view-song,
 .fs-view-queue,
 .fs-view-lyrics {
-  width: 33.333333%;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  flex: 0 0 100%;
   height: 100%;
-  flex-shrink: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
 }
@@ -720,25 +724,29 @@
   position: relative;
 }
 
-/* ── Album Art (Clean, responsive, non-flipping) ── */
+/* ── Album Art (Clean, responsive, non-flipping with balanced spacing) ── */
 .fs-art-container {
-  padding: 6px 20px 10px;
+  padding: 4px 24px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 160px;
+  max-height: 38vh;
+  box-sizing: border-box;
 }
 
 .fs-art-wrap {
-  width: min(72vw, 36vh, 310px);
-  height: min(72vw, 36vh, 310px);
+  width: min(68vw, 32vh, 280px);
+  height: min(68vw, 32vh, 280px);
+  aspect-ratio: 1 / 1;
   position: relative;
-  border-radius: 28px;
+  border-radius: 26px;
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.75),
+    0 20px 50px rgba(0, 0, 0, 0.75),
     0 0 0 1px rgba(255, 255, 255, 0.08);
   overflow: hidden;
+  margin: auto;
   transition: transform 0.3s ease;
 }
 
@@ -1223,65 +1231,119 @@
   height: 6px;
 }
 
-/* ── Dolby Audio Pill ── */
+/* ── Dolby Audio Toggle Pill with Authentic Icon & Active Indicator ── */
 .fs-dolby-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3.5px 11px;
-  border-radius: 12px;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.8px;
+  gap: 7px;
+  background: rgba(16, 20, 32, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 4px 13px;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.45);
-  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  outline: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-.fs-dolby-pill:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
-}
-
-.fs-dolby-pill:active {
-  transform: scale(0.92);
-}
-
-.fs-dolby-pill.active {
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.16), rgba(167, 139, 250, 0.22));
-  border-color: rgba(0, 229, 255, 0.55);
-  color: #00e5ff;
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
+.fs-dolby-icon {
+  width: 15px;
+  height: 13px;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.45);
+  transition: all 0.25s ease;
 }
 
 .fs-dolby-brand {
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.65);
+  transition: color 0.25s ease;
 }
 
-.fs-dolby-dot {
-  width: 5px;
-  height: 5px;
+.fs-dolby-sep {
+  opacity: 0.3;
+  font-size: 0.65rem;
+}
+
+.fs-dolby-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.fs-dolby-status-pill .fs-dolby-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: all 0.25s ease;
+}
+
+/* ACTIVE (DOLBY AUDIO SPATIAL ON) */
+.fs-dolby-pill.active {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.48);
+  color: #00e5ff;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.25), 0 3px 12px rgba(0, 0, 0, 0.4);
+}
+
+.fs-dolby-pill.active .fs-dolby-icon {
+  color: #00e5ff;
+  filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.7));
+  transform: scale(1.06);
+}
+
+.fs-dolby-pill.active .fs-dolby-brand {
+  color: #ffffff;
+}
+
+.fs-dolby-pill.active .fs-dolby-status-pill.on {
+  color: #00e5ff;
+}
+
+.fs-dolby-pill.active .fs-dolby-status-pill.on .fs-dolby-dot {
   background: #00e5ff;
-  box-shadow: 0 0 6px #00e5ff;
-  animation: dolbyDotPulse 1.8s infinite ease-in-out;
+  box-shadow: 0 0 8px #00e5ff, 0 0 12px rgba(0, 229, 255, 0.85);
+  animation: dolbyPulse 2s infinite ease-in-out;
 }
 
-@keyframes dolbyDotPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.6; }
+@keyframes dolbyPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
 }
 
-.fs-dolby-state {
-  font-size: 0.64rem;
-  opacity: 0.9;
+.fs-dolby-pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.fs-dolby-pill.active:hover {
+  border-color: rgba(0, 229, 255, 0.7);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.38);
+}
+
+.fs-dolby-pill:active {
+  transform: scale(0.95);
 }
 
 /* ── Primary playback controls ── */
@@ -1457,12 +1519,43 @@
 .fs-queue-strip {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 80px;
+  padding: 6px 24px 16px;
   min-height: 0;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   will-change: scroll-position;
+  box-sizing: border-box;
+}
+
+/* ── Docked controls in queue view ── */
+.fs-queue-dock {
+  padding: 6px 20px max(12px, env(safe-area-inset-bottom, 12px));
+  background: rgba(8, 12, 24, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.fs-queue-dock-seek {
+  width: 100%;
+}
+
+.fs-queue-dock-ctrls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.fs-queue-play-btn {
+  width: 52px;
+  height: 52px;
 }
 
 .fs-queue-strip::-webkit-scrollbar {

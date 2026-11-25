@@ -449,11 +449,24 @@ export default function FooterPlayer() {
     const diffX = touch.clientX - touchStartRef.current.x;
     const diffY = touch.clientY - touchStartRef.current.y;
 
-    if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY)) {
-      // Horizontal swipe
-      triggerHaptic(20);
-      if (diffX < 0) playNext();
-      else playPrevious();
+    if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+      // Horizontal swipe to smoothly slide between tabs (Song <-> Queue <-> Lyrics)
+      triggerHaptic(15);
+      if (diffX < 0) {
+        // Swipe left -> advance tab
+        setActiveTab(prev => {
+          if (prev === 'song') return 'queue';
+          if (prev === 'queue') return 'lyrics';
+          return prev;
+        });
+      } else {
+        // Swipe right -> previous tab
+        setActiveTab(prev => {
+          if (prev === 'lyrics') return 'queue';
+          if (prev === 'queue') return 'song';
+          return prev;
+        });
+      }
     } else if (diffY > 80 && Math.abs(diffY) > Math.abs(diffX)) {
       // Vertical swipe down to minimize
       triggerHaptic(20);
@@ -1098,11 +1111,22 @@ export default function FooterPlayer() {
                           className={`fs-dolby-pill ${dolbyAudio ? 'active' : ''}`}
                           onClick={handleToggleDolby}
                           type="button"
-                          title={dolbyAudio ? "Dolby Audio ON (Spatial Virtualizer Active) — Tap to toggle" : "Dolby Audio OFF — Tap to enable"}
+                          title={dolbyAudio ? "Dolby Audio ON (Spatial Virtualizer Active) — Tap to turn off" : "Dolby Audio OFF — Tap to enable True Dolby Spatial sound"}
                         >
+                          {/* Authentic Dolby Double-D Icon */}
+                          <svg className="fs-dolby-icon" viewBox="0 0 18 16" fill="currentColor" aria-hidden="true">
+                            <path
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M8 0H3C1.3 0 0 1.3 0 3V13C0 14.7 1.3 16 3 16H8V0ZM6 3H3C2.1 3 1.6 3.5 1.6 4.6V11.4C1.6 12.5 2.1 13 3 13H6V3ZM10 0H15C16.7 0 18 1.3 18 3V13C18 14.7 16.7 16 15 16H10V0ZM12 3H15C15.9 3 16.4 3.5 16.4 4.6V11.4C16.4 12.5 15.9 13 15 13H12V3Z"
+                            />
+                          </svg>
                           <span className="fs-dolby-brand">DOLBY AUDIO</span>
-                          {dolbyAudio && <span className="fs-dolby-dot" />}
-                          <span className="fs-dolby-state">{dolbyAudio ? 'SPATIAL ON' : 'OFF'}</span>
+                          <span className="fs-dolby-sep">•</span>
+                          <span className={`fs-dolby-status-pill ${dolbyAudio ? 'on' : 'off'}`}>
+                            <span className="fs-dolby-dot" />
+                            <span className="fs-dolby-state">{dolbyAudio ? 'SPATIAL ON' : 'OFF'}</span>
+                          </span>
                         </button>
                       }
                     />
@@ -1299,6 +1323,30 @@ export default function FooterPlayer() {
                       </DragDropContext>
                     )}
                   </div>
+
+                  {/* Docked seek & primary controls in Queue view */}
+                  <div className="fs-queue-dock">
+                    <div className="fs-queue-dock-seek">
+                      <WaveProgressBar progress={progress} duration={duration} onSeek={seek} />
+                    </div>
+                    <div className="fs-queue-dock-ctrls">
+                      <button className="fs-ctrl-btn" onClick={playPrevious} title="Previous">
+                        <SkipPreviousIcon sx={{ fontSize: '1.85rem' }} />
+                      </button>
+                      <button className="fs-play-btn fs-queue-play-btn" onClick={togglePlay} title={playing ? 'Pause' : 'Play'}>
+                        {audioLoading ? (
+                          <div className="heart-pulse-loader" />
+                        ) : playing ? (
+                          <PauseIcon sx={{ fontSize: '2rem' }} />
+                        ) : (
+                          <PlayArrowIcon sx={{ fontSize: '2rem' }} />
+                        )}
+                      </button>
+                      <button className="fs-ctrl-btn" onClick={playNext} title="Next">
+                        <SkipNextIcon sx={{ fontSize: '1.85rem' }} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* ── VIEW: LYRICS (Spotify-grade typography, tap-to-seek, smooth auto-scroll) ── */}
@@ -1388,10 +1436,21 @@ export default function FooterPlayer() {
                             className={`fs-dolby-pill ${dolbyAudio ? 'active' : ''}`}
                             onClick={handleToggleDolby}
                             type="button"
+                            title={dolbyAudio ? "Dolby Audio ON (Spatial Virtualizer Active) — Tap to turn off" : "Dolby Audio OFF — Tap to enable True Dolby Spatial sound"}
                           >
-                            <span className="fs-dolby-brand">DOLBY</span>
-                            {dolbyAudio && <span className="fs-dolby-dot" />}
-                            <span className="fs-dolby-state">{dolbyAudio ? 'SPATIAL ON' : 'OFF'}</span>
+                            <svg className="fs-dolby-icon" viewBox="0 0 18 16" fill="currentColor" aria-hidden="true">
+                              <path
+                                fillRule="evenodd"
+                                clipRule="evenodd"
+                                d="M8 0H3C1.3 0 0 1.3 0 3V13C0 14.7 1.3 16 3 16H8V0ZM6 3H3C2.1 3 1.6 3.5 1.6 4.6V11.4C1.6 12.5 2.1 13 3 13H6V3ZM10 0H15C16.7 0 18 1.3 18 3V13C18 14.7 16.7 16 15 16H10V0ZM12 3H15C15.9 3 16.4 3.5 16.4 4.6V11.4C16.4 12.5 15.9 13 15 13H12V3Z"
+                              />
+                            </svg>
+                            <span className="fs-dolby-brand">DOLBY AUDIO</span>
+                            <span className="fs-dolby-sep">•</span>
+                            <span className={`fs-dolby-status-pill ${dolbyAudio ? 'on' : 'off'}`}>
+                              <span className="fs-dolby-dot" />
+                              <span className="fs-dolby-state">{dolbyAudio ? 'SPATIAL ON' : 'OFF'}</span>
+                            </span>
                           </button>
                         }
                       />
