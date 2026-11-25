@@ -77,8 +77,8 @@ export default function PlaylistCard({ playlist }) {
             </div>
             <div className="album-card-info">
                 <div className="album-card-title" title={playlist.title}>{playlist.title}</div>
-                {playlist.songCount > 0 && (
-                    <div className="album-card-artist">{playlist.songCount} songs</div>
+                {(playlist.subtitle || playlist.artist) && (
+                    <div className="album-card-artist">{playlist.subtitle || playlist.artist}</div>
                 )}
             </div>
         </div>

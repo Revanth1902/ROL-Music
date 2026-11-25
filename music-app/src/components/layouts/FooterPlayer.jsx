@@ -60,7 +60,8 @@ export default function FooterPlayer() {
 
   const {
     current, playing, audioLoading, playSong, togglePlay, progress, duration, seek, toggleLoop, loop, volume, setVolume, isMuted, toggleMute,
-    analyserNode, pannerVal, setPannerVal, playPrevious, playNext
+    analyserNode, pannerVal, setPannerVal, playPrevious, playNext,
+    dolbyAudio, toggleDolbyAudio
   } = useAudioPlayer();
   const { queue, setQueue, reorderQueue, removeFromQueue, isShuffle, toggleShuffle, isAutoPlay, toggleAutoPlay, pushToHistory } = useQueue();
 
@@ -74,6 +75,16 @@ export default function FooterPlayer() {
   const [lyricsError, setLyricsError] = useState(false);
   const [showDesktopLyrics, setShowDesktopLyrics] = useState(false);
   const [isLyricsFlipped, setIsLyricsFlipped] = useState(false);
+  const [dolbyToast, setDolbyToast] = useState('');
+
+  const handleToggleDolby = (e) => {
+    e?.stopPropagation?.();
+    triggerHaptic();
+    toggleDolbyAudio();
+    const nextState = !dolbyAudio;
+    setDolbyToast(nextState ? '⚡ Dolby Audio: Spatial 3D Active' : 'Dolby Audio: Off (Stereo Bypass)');
+    setTimeout(() => setDolbyToast(''), 2400);
+  };
 
   const [showVisualizer, setShowVisualizer] = useState(true);
   const [isSavedOffline, setIsSavedOffline] = useState(false);
@@ -932,23 +943,32 @@ export default function FooterPlayer() {
               <button className="fs-chevron-btn" onClick={closeFullscreen} aria-label="Close">
                 <KeyboardArrowDownIcon sx={{ fontSize: '2rem' }} />
               </button>
-              <span className="fs-topbar-label">Now Playing</span>
+              <div className="fs-topbar-center">
+                <span className="fs-topbar-label">NOW PLAYING</span>
+                <span className="fs-topbar-sub">{current.album || current.title}</span>
+              </div>
               <ThreeDotMenu song={current} />
             </div>
 
-            {/* Tab switcher */}
+            {/* Tab switcher: Song, Queue, Lyrics */}
             <div className="fs-tabs">
               <button
-                className={`fs-tab ${!showQueue ? 'active' : ''}`}
+                className={`fs-tab ${!showQueue && !isLyricsFlipped ? 'active' : ''}`}
                 onClick={() => { setShowQueue(false); setIsLyricsFlipped(false); }}
               >
                 Song
               </button>
               <button
                 className={`fs-tab ${showQueue ? 'active' : ''}`}
-                onClick={() => setShowQueue(true)}
+                onClick={() => { setShowQueue(true); setIsLyricsFlipped(false); }}
               >
                 Queue {queue.length > 0 && `(${queue.length})`}
+              </button>
+              <button
+                className={`fs-tab ${isLyricsFlipped && !showQueue ? 'active' : ''}`}
+                onClick={() => { setIsLyricsFlipped(true); setShowQueue(false); }}
+              >
+                Lyrics
               </button>
             </div>
 
@@ -1086,13 +1106,29 @@ export default function FooterPlayer() {
                     </div>
                   </div>
 
-                  {/* ── Wave Seekbar ── */}
+                  {/* ── Wave Seekbar with Dolby Audio Toggle Pill ── */}
                   <div className="fs-seek-wrap">
-                    <WaveProgressBar progress={progress} duration={duration} onSeek={seek} />
+                    <WaveProgressBar
+                      progress={progress}
+                      duration={duration}
+                      onSeek={seek}
+                      centerNode={
+                        <button
+                          className={`fs-dolby-pill ${dolbyAudio ? 'active' : ''}`}
+                          onClick={handleToggleDolby}
+                          type="button"
+                          title={dolbyAudio ? "Dolby Audio ON (Spatial Virtualizer Active) — Tap to toggle" : "Dolby Audio OFF — Tap to enable"}
+                        >
+                          <span className="fs-dolby-brand">DOLBY AUDIO</span>
+                          {dolbyAudio && <span className="fs-dolby-dot" />}
+                          <span className="fs-dolby-state">{dolbyAudio ? 'SPATIAL ON' : 'OFF'}</span>
+                        </button>
+                      }
+                    />
                   </div>
 
-                  {/* ── 1st Row Controls (Primary Playback) ── */}
-                  <div className="fs-controls fs-controls-row-1">
+                  {/* ── Primary Playback Controls ── */}
+                  <div className="fs-controls-primary">
                     <button
                       className={`fs-ctrl-btn ${isShuffle ? 'active' : ''}`}
                       onClick={toggleShuffle}
@@ -1112,7 +1148,7 @@ export default function FooterPlayer() {
                     >
                       {audioLoading
                         ? <div className="heart-pulse-loader"></div>
-                        : playing ? <PauseIcon sx={{ fontSize: '2rem' }} /> : <PlayArrowIcon sx={{ fontSize: '2rem' }} />
+                        : playing ? <PauseIcon sx={{ fontSize: '2.1rem' }} /> : <PlayArrowIcon sx={{ fontSize: '2.1rem' }} />
                       }
                     </button>
 
@@ -1129,53 +1165,56 @@ export default function FooterPlayer() {
                     </button>
                   </div>
 
-                  {/* ── 2nd Row Controls (Feature & Utility Actions) ── */}
-                  <div className="fs-controls fs-controls-row-2">
+                  {/* ── Unified Bottom Utility Toolbar ── */}
+                  <div className="fs-bottom-bar">
                     <button
-                      className={`fs-ctrl-btn ${isAutoPlay ? 'active' : ''}`}
+                      className={`fs-bottom-btn ${isAutoPlay ? 'active' : ''}`}
                       onClick={toggleAutoPlay}
                       title={isAutoPlay ? 'Autoplay On' : 'Autoplay Off'}
                     >
-                      <AutoAwesomeIcon sx={{ fontSize: '1.3rem' }} />
+                      <AutoAwesomeIcon sx={{ fontSize: '1.25rem' }} />
+                      <span>Autoplay</span>
                     </button>
 
                     <button
-                      className="fs-ctrl-btn"
+                      className="fs-bottom-btn"
                       onClick={() => downloadSong(current)}
                       title="Download MP3"
                     >
-                      <DownloadIcon sx={{ fontSize: '1.3rem' }} />
+                      <DownloadIcon sx={{ fontSize: '1.25rem' }} />
+                      <span>Download</span>
                     </button>
 
                     <button
-                      className={`fs-ctrl-btn ${isSavedOffline ? 'active' : ''}`}
-                      onClick={handleSaveOffline}
-                      title={isSavedOffline ? 'Saved Offline' : 'Save for Offline Playback'}
-                    >
-                      <DownloadForOfflineIcon sx={{ fontSize: '1.3rem' }} />
-                    </button>
-
-                    <button
-                      className={`fs-ctrl-btn ${isLyricsFlipped ? 'active' : ''}`}
-                      onClick={() => setIsLyricsFlipped(l => !l)}
+                      className={`fs-bottom-btn ${isLyricsFlipped ? 'active' : ''}`}
+                      onClick={() => {
+                        setIsLyricsFlipped(l => !l);
+                        setShowQueue(false);
+                      }}
                       title={isLyricsFlipped ? 'Back to Cover' : 'Show Lyrics'}
                     >
-                      <LyricsIcon sx={{ fontSize: '1.3rem' }} />
+                      <LyricsIcon sx={{ fontSize: '1.25rem' }} />
+                      <span>Lyrics</span>
                     </button>
-                  </div>
 
-                  {/* ── Actions ── */}
-                  <div className="fs-actions">
-                    <button className="fs-action-btn" onClick={() => setShowQueue(true)}>
-                      <QueueMusicIcon className="fa-icon" />
+                    <button
+                      className={`fs-bottom-btn ${showQueue ? 'active' : ''}`}
+                      onClick={() => {
+                        setShowQueue(q => !q);
+                        setIsLyricsFlipped(false);
+                      }}
+                      title={showQueue ? 'Close Queue' : 'Open Queue'}
+                    >
+                      <QueueMusicIcon sx={{ fontSize: '1.25rem' }} />
                       <span>Queue</span>
                     </button>
-                    <button className="fs-action-btn" onClick={handleOpenPlaylist}>
-                      <PlaylistAddIcon className="fa-icon" />
-                      <span>Playlist</span>
-                    </button>
-                    <button className="fs-action-btn" onClick={() => shareSong(current)}>
-                      <ShareIcon className="fa-icon" />
+
+                    <button
+                      className="fs-bottom-btn"
+                      onClick={() => shareSong(current)}
+                      title="Share Song"
+                    >
+                      <ShareIcon sx={{ fontSize: '1.25rem' }} />
                       <span>Share</span>
                     </button>
                   </div>
@@ -1282,6 +1321,14 @@ export default function FooterPlayer() {
                 </div>
               </div>
             </div>
+
+            {/* Dolby Audio Toast Notification */}
+            {dolbyToast && (
+              <div className="fs-dolby-toast">
+                <span className="fs-toast-icon">🎧</span>
+                <span>{dolbyToast}</span>
+              </div>
+            )}
           </div>
         </div>
       )}

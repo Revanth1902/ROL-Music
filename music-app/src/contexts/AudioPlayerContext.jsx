@@ -34,6 +34,22 @@ export const AudioPlayerProvider = ({ children }) => {
   const [pannerVal, setPannerValState] = useState(0); // -1.0 to +1.0
   const [crossfadeTime, setCrossfadeTime] = useState(2); // 0 to 12 sec
 
+  // ── Dolby Audio State & Node References ────────────────────────
+  const [dolbyAudio, setDolbyAudioState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rol_dolby_sound');
+      return saved !== null ? saved === 'true' : true; // Default ON for rich cinematic sound
+    } catch {
+      return true;
+    }
+  });
+  const dolbyDryGainRef = useRef(null);
+  const dolbyWetGainRef = useRef(null);
+  const dolbyBassRef = useRef(null);
+  const dolbyClarityRef = useRef(null);
+  const dolbyAirRef = useRef(null);
+  const dolbyCompressorRef = useRef(null);
+
   const EQ_FREQUENCIES = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000];
 
   const EQ_PRESETS = {
@@ -212,7 +228,56 @@ export const AudioPlayerProvider = ({ children }) => {
       // Convolver (hall reverb)
       convolver.current = ctx.createConvolver();
 
-      // Connect Chain: source → vocalFilter → EQ chain → panner → gain → analyser → destination
+      // ── Dolby Audio Spatial Enhancement Engine ────────────────────────
+      // 1. Dry bypass path (pure bit-perfect original audio)
+      dolbyDryGainRef.current = ctx.createGain();
+      dolbyDryGainRef.current.gain.value = dolbyAudio ? 0 : 1;
+
+      // 2. Wet path (immersive Dolby spatial processing)
+      dolbyWetGainRef.current = ctx.createGain();
+      dolbyWetGainRef.current.gain.value = dolbyAudio ? 1 : 0;
+
+      // Dynamic cinematic sub-bass warmth (85Hz low-shelf +3.6dB)
+      dolbyBassRef.current = ctx.createBiquadFilter();
+      dolbyBassRef.current.type = "lowshelf";
+      dolbyBassRef.current.frequency.value = 85;
+      dolbyBassRef.current.gain.value = 3.6;
+
+      // Vocal clarity & center stage presence (3000Hz peaking +2.5dB, Q: 1.1)
+      dolbyClarityRef.current = ctx.createBiquadFilter();
+      dolbyClarityRef.current.type = "peaking";
+      dolbyClarityRef.current.frequency.value = 3000;
+      dolbyClarityRef.current.Q.value = 1.1;
+      dolbyClarityRef.current.gain.value = 2.5;
+
+      // Airy treble shimmer & spatial reflections (11.5kHz high-shelf +2.8dB)
+      dolbyAirRef.current = ctx.createBiquadFilter();
+      dolbyAirRef.current.type = "highshelf";
+      dolbyAirRef.current.frequency.value = 11500;
+      dolbyAirRef.current.gain.value = 2.8;
+
+      // Binaural Stereo Soundstage Widener (acoustic Haas crossfeed spatialization)
+      const splitter = ctx.createChannelSplitter(2);
+      const merger = ctx.createChannelMerger(2);
+      const delayL = ctx.createDelay(0.05);
+      const delayR = ctx.createDelay(0.05);
+      delayL.delayTime.value = 0.013; // 13ms acoustic Haas delay
+      delayR.delayTime.value = 0.013;
+
+      const crossL = ctx.createGain();
+      const crossR = ctx.createGain();
+      crossL.gain.value = -0.3; // Subtle inverted ambient crossfeed
+      crossR.gain.value = -0.3;
+
+      // Dynamics Compressor (Studio master leveling & punch)
+      dolbyCompressorRef.current = ctx.createDynamicsCompressor();
+      dolbyCompressorRef.current.threshold.value = -18;
+      dolbyCompressorRef.current.knee.value = 18;
+      dolbyCompressorRef.current.ratio.value = 3.2;
+      dolbyCompressorRef.current.attack.value = 0.003;
+      dolbyCompressorRef.current.release.value = 0.22;
+
+      // Connect Chain: source → vocalFilter → EQ chain → panner
       let chain = sourceRef.current;
       chain.connect(vocalFilterRef.current);
       chain = vocalFilterRef.current;
@@ -224,7 +289,31 @@ export const AudioPlayerProvider = ({ children }) => {
         chain = stereoPannerRef.current;
       }
 
-      chain.connect(gainNode.current);
+      // Branch 1: Dry bypass direct to gainNode
+      chain.connect(dolbyDryGainRef.current);
+      dolbyDryGainRef.current.connect(gainNode.current);
+
+      // Branch 2: Dolby Sound chain (Bass -> Clarity -> Air -> Spatializer -> Compressor -> Wet Gain)
+      chain.connect(dolbyBassRef.current);
+      dolbyBassRef.current.connect(dolbyClarityRef.current);
+      dolbyClarityRef.current.connect(dolbyAirRef.current);
+
+      dolbyAirRef.current.connect(splitter);
+      splitter.connect(merger, 0, 0); // L direct
+      splitter.connect(merger, 1, 1); // R direct
+
+      splitter.connect(delayL, 1);     // R to delayL
+      delayL.connect(crossL);
+      crossL.connect(merger, 0, 0);   // delayed R inverted to L
+
+      splitter.connect(delayR, 0);     // L to delayR
+      delayR.connect(crossR);
+      crossR.connect(merger, 0, 1);   // delayed L inverted to R
+
+      merger.connect(dolbyCompressorRef.current);
+      dolbyCompressorRef.current.connect(dolbyWetGainRef.current);
+      dolbyWetGainRef.current.connect(gainNode.current);
+
       gainNode.current.connect(analyserRef.current);
       analyserRef.current.connect(ctx.destination);
 
@@ -478,6 +567,21 @@ export const AudioPlayerProvider = ({ children }) => {
     });
   };
 
+  const toggleDolbyAudio = () => {
+    setDolbyAudioState(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('rol_dolby_sound', String(next));
+      } catch {}
+      if (audioCtxRef.current && dolbyWetGainRef.current && dolbyDryGainRef.current) {
+        const t = audioCtxRef.current.currentTime;
+        dolbyWetGainRef.current.gain.setTargetAtTime(next ? 1 : 0, t, 0.04);
+        dolbyDryGainRef.current.gain.setTargetAtTime(next ? 0 : 1, t, 0.04);
+      }
+      return next;
+    });
+  };
+
   return (
     <AudioPlayerContext.Provider value={{
       audioRef, current, playing, audioLoading, playSong, togglePlay, progress, duration, seek,
@@ -489,6 +593,7 @@ export const AudioPlayerProvider = ({ children }) => {
       isKaraoke, toggleKaraoke,
       pannerVal, setPannerVal,
       crossfadeTime, setCrossfadeTime,
+      dolbyAudio, toggleDolbyAudio,
     }}>
       {children}
     </AudioPlayerContext.Provider>

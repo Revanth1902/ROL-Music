@@ -49,10 +49,18 @@
 .wave-time-row {
     width: 100%;
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.45);
     margin-top: 8px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.wave-time-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

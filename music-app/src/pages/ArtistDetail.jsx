@@ -179,24 +179,13 @@ export default function ArtistDetail() {
                         </p>
                     )}
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+                    <div className="detail-action-buttons">
                         <button className="detail-play-all-btn" onClick={playAll} disabled={!songs.length}>
                             <PlayArrowIcon /> Play All
                         </button>
                         <button className="detail-shuffle-btn" onClick={playShuffled} disabled={!songs.length}>
                             <ShuffleIcon /> Shuffle
                         </button>
-                        {songsLoading && (
-                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <CircularProgress size={12} sx={{ color: '#6c63ff' }} />
-                                Loading page {currentPage}/{totalPages}...
-                            </span>
-                        )}
-                        {allLoaded && songs.length > 0 && (
-                            <span style={{ fontSize: '0.75rem', color: '#1db954' }}>
-                                ✓ {songs.length} songs loaded
-                            </span>
-                        )}
                     </div>
                 </div>
             </div>
@@ -209,7 +198,7 @@ export default function ArtistDetail() {
                     fontWeight: 700, color: '#e8edf2', fontSize: '1.05rem',
                     fontFamily: '"Plus Jakarta Sans", sans-serif',
                 }}>
-                    {allLoaded ? `All Songs (${songs.length})` : `Songs (${songs.length}${songsLoading ? '+' : ''})`}
+                    Popular Songs
                 </Typography>
                 {songsLoading && (
                     <CircularProgress size={16} sx={{ color: '#6c63ff' }} />

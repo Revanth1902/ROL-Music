@@ -98,3 +98,36 @@
     white-space: nowrap;
     flex-shrink: 0;
 }
+
+@media (max-width: 480px) {
+    .sli {
+        padding: 6px 8px;
+        gap: 8px;
+    }
+
+    .sli-index {
+        width: 22px;
+        height: 22px;
+    }
+
+    .sli-num {
+        font-size: 0.72rem;
+    }
+
+    .sli-thumb {
+        width: 40px;
+        height: 40px;
+    }
+
+    .sli-title {
+        font-size: 0.85rem;
+    }
+
+    .sli-artist {
+        font-size: 0.72rem;
+    }
+
+    .sli-dur {
+        display: none;
+    }
+}

@@ -187,17 +187,34 @@
 
 @media (max-width: 768px) {
     .detail-hero.scrolled {
-        padding: 8px 16px;
+        margin: -10px -14px 16px;
+        padding: 8px 14px;
         gap: 12px;
     }
 
     .detail-hero.scrolled .detail-cover {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
     }
 
     .detail-hero.scrolled .detail-title {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
+    }
+}
+
+/* Action Buttons Container (Play All & Shuffle) */
+.detail-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+    .detail-action-buttons {
+        justify-content: center;
+        width: 100%;
     }
 }
 

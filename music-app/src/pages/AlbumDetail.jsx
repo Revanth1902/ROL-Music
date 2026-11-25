@@ -130,17 +130,8 @@ export default function AlbumDetail() {
                     <h1 className="detail-title">{album.title}</h1>
                     <p className="detail-sub">{album.artist}</p>
                     {album.year && <p className="detail-year">{album.year} · {album.language}</p>}
-                    <p className="detail-count">{songs.length} songs</p>
 
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '16px',
-                        flexWrap: 'wrap',
-                        width: '100%',
-                        margin: '20px auto',
-                    }}>
+                    <div className="detail-action-buttons">
                         <button className="detail-play-all-btn" onClick={playAll}
                             disabled={resolving && songs.every(s => !s.src)}>
                             <PlayArrowIcon /> Play All

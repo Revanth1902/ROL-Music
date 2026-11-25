@@ -9,7 +9,7 @@ function formatTime(sec) {
     return `${m}:${s}`;
 }
 
-export default function WaveProgressBar({ progress, duration, onSeek }) {
+export default function WaveProgressBar({ progress, duration, onSeek, centerNode }) {
     const [local, setLocal] = useState(0);
 
     const dragging = useRef(false);
@@ -85,8 +85,9 @@ export default function WaveProgressBar({ progress, duration, onSeek }) {
             />
 
             <div className="wave-time-row">
-                <span>{formatTime(local)}</span>
-                <span>-{formatTime(Math.max(0, (duration || 0) - local))}</span>
+                <span className="wave-time-text">{formatTime(local)}</span>
+                {centerNode && <div className="wave-time-center">{centerNode}</div>}
+                <span className="wave-time-text">-{formatTime(Math.max(0, (duration || 0) - local))}</span>
             </div>
         </div>
     );

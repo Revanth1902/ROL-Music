@@ -146,8 +146,7 @@ export default function PlaylistDetail() {
                             {playlist.description}
                         </p>
                     )}
-                    <p className="detail-count">{playlist.songs.length} songs</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <div className="detail-action-buttons">
                         <button className="detail-play-all-btn" onClick={playAll}>
                             <PlayArrowIcon /> Play All
                         </button>
